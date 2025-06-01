@@ -42,6 +42,17 @@
             font-size: 1.2em;
             color: #3498db;
         }
+        .edit-user-btn {
+            background: none;
+            border: none;
+            color: #7f8c8d;
+            cursor: pointer;
+            font-size: 0.9em;
+            padding: 2px 5px;
+        }
+        .edit-user-btn:hover {
+            color: #3498db;
+        }
         .task-list {
             list-style-type: none;
             padding: 0;
@@ -54,6 +65,7 @@
         }
         .task-checkbox {
             margin-right: 10px;
+            order: -1; /* This moves the checkbox to the left */
         }
         .task-name {
             flex-grow: 1;
@@ -142,6 +154,40 @@
         .tab-content.active {
             display: block;
         }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 300px;
+        }
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 20px;
+            gap: 10px;
+        }
+        .modal-buttons button {
+            margin-top: 0;
+            width: auto;
+        }
+        .cancel-btn {
+            background-color: #95a5a6;
+        }
+        .cancel-btn:hover {
+            background-color: #7f8c8d;
+        }
     </style>
 </head>
 <body>
@@ -162,6 +208,7 @@
             <div class="tab active" data-tab="add-task">Add Task</div>
             <div class="tab" data-tab="assign-task">Assign Task</div>
             <div class="tab" data-tab="manage-tasks">Manage Tasks</div>
+            <div class="tab" data-tab="manage-users">Manage Users</div>
         </div>
         
         <div class="tab-content active" id="add-task">
@@ -211,6 +258,36 @@
             </div>
             <button id="remove-task-btn">Remove Task</button>
         </div>
+        
+        <div class="tab-content" id="manage-users">
+            <h2>Manage Users</h2>
+            <div class="form-group">
+                <label for="user-to-rename">Select User to Rename:</label>
+                <select id="user-to-rename">
+                    <!-- Users will be populated here -->
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="new-user-name">New Name:</label>
+                <input type="text" id="new-user-name" placeholder="Enter new name">
+            </div>
+            <button id="rename-user-btn">Rename User</button>
+        </div>
+    </div>
+
+    <!-- Modal for editing user name -->
+    <div class="modal" id="edit-user-modal">
+        <div class="modal-content">
+            <h2>Edit User Name</h2>
+            <div class="form-group">
+                <label for="edit-user-name">New Name:</label>
+                <input type="text" id="edit-user-name">
+            </div>
+            <div class="modal-buttons">
+                <button class="cancel-btn" id="cancel-edit-user">Cancel</button>
+                <button id="save-edit-user">Save</button>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -237,13 +314,23 @@
         const removeTaskBtn = document.getElementById('remove-task-btn');
         const assignTaskBtn = document.getElementById('assign-task-btn');
         const unassignTaskBtn = document.getElementById('unassign-task-btn');
+        const renameUserBtn = document.getElementById('rename-user-btn');
         const newTaskName = document.getElementById('new-task-name');
         const newTaskFrequency = document.getElementById('new-task-frequency');
         const taskToRemove = document.getElementById('task-to-remove');
         const assignTaskSelect = document.getElementById('assign-task-select');
         const assignUserSelect = document.getElementById('assign-user-select');
+        const userToRename = document.getElementById('user-to-rename');
+        const newUserName = document.getElementById('new-user-name');
         const tabs = document.querySelectorAll('.tab');
         const tabContents = document.querySelectorAll('.tab-content');
+        const editUserModal = document.getElementById('edit-user-modal');
+        const editUserName = document.getElementById('edit-user-name');
+        const saveEditUserBtn = document.getElementById('save-edit-user');
+        const cancelEditUserBtn = document.getElementById('cancel-edit-user');
+
+        // Track which user is being edited
+        let currentlyEditingUserId = null;
 
         // Initialize the app
         function initApp() {
@@ -299,7 +386,14 @@
                 userName.className = 'user-name';
                 userName.textContent = user.name;
                 
+                const editBtn = document.createElement('button');
+                editBtn.className = 'edit-user-btn';
+                editBtn.innerHTML = '✏️';
+                editBtn.title = 'Edit user name';
+                editBtn.addEventListener('click', () => openEditUserModal(user.id, user.name));
+                
                 userHeader.appendChild(userName);
+                userHeader.appendChild(editBtn);
                 userSection.appendChild(userHeader);
                 
                 const taskList = document.createElement('ul');
@@ -335,6 +429,31 @@
                 userSection.appendChild(taskList);
                 usersContainer.appendChild(userSection);
             });
+        }
+
+        // Open modal to edit user name
+        function openEditUserModal(userId, currentName) {
+            currentlyEditingUserId = userId;
+            editUserName.value = currentName;
+            editUserModal.style.display = 'flex';
+        }
+
+        // Close edit user modal
+        function closeEditUserModal() {
+            editUserModal.style.display = 'none';
+            currentlyEditingUserId = null;
+            editUserName.value = '';
+        }
+
+        // Update user name
+        function updateUserName(userId, newName) {
+            const user = householdData.users.find(u => u.id === userId);
+            if (user && newName.trim()) {
+                user.name = newName.trim();
+                saveData();
+                renderUsers();
+                populateDropdowns();
+            }
         }
 
         // Update week display
@@ -461,6 +580,9 @@
             // Task assign dropdown
             assignTaskSelect.innerHTML = '<option value="">Select a task</option>';
             
+            // User rename dropdown
+            userToRename.innerHTML = '<option value="">Select a user</option>';
+            
             householdData.allTasks.forEach(task => {
                 const option1 = document.createElement('option');
                 option1.value = task.id;
@@ -475,11 +597,18 @@
             
             // User assign dropdown
             assignUserSelect.innerHTML = '<option value="">Select a user</option>';
+            
+            // Populate user dropdowns
             householdData.users.forEach(user => {
-                const option = document.createElement('option');
-                option.value = user.id;
-                option.textContent = user.name;
-                assignUserSelect.appendChild(option);
+                const option1 = document.createElement('option');
+                option1.value = user.id;
+                option1.textContent = user.name;
+                assignUserSelect.appendChild(option1);
+                
+                const option2 = document.createElement('option');
+                option2.value = user.id;
+                option2.textContent = user.name;
+                userToRename.appendChild(option2);
             });
         }
 
@@ -531,7 +660,35 @@
                 }
             });
             
+            renameUserBtn.addEventListener('click', () => {
+                const userId = parseInt(userToRename.value);
+                const newName = newUserName.value.trim();
+                
+                if (userId && newName) {
+                    updateUserName(userId, newName);
+                    newUserName.value = '';
+                }
+            });
+            
             rotateBtn.addEventListener('click', rotateTasks);
+            
+            // Modal event listeners
+            saveEditUserBtn.addEventListener('click', () => {
+                const newName = editUserName.value.trim();
+                if (currentlyEditingUserId && newName) {
+                    updateUserName(currentlyEditingUserId, newName);
+                    closeEditUserModal();
+                }
+            });
+            
+            cancelEditUserBtn.addEventListener('click', closeEditUserModal);
+            
+            // Close modal when clicking outside
+            editUserModal.addEventListener('click', (e) => {
+                if (e.target === editUserModal) {
+                    closeEditUserModal();
+                }
+            });
         }
 
         // Start the app
