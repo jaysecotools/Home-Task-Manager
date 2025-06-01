@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Household Chores Manager</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .user-section {
+            flex: 1;
+            min-width: 250px;
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .user-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .user-name {
+            font-weight: bold;
+            font-size: 1.2em;
+            color: #3498db;
+        }
+        .task-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        .task-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .task-checkbox {
+            margin-right: 10px;
+        }
+        .task-name {
+            flex-grow: 1;
+        }
+        .task-frequency {
+            font-size: 0.8em;
+            color: #7f8c8d;
+            margin-left: 5px;
+        }
+        .completed {
+            text-decoration: line-through;
+            color: #95a5a6;
+        }
+        .admin-panel {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select, button {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .week-indicator {
+            text-align: center;
+            margin: 20px 0;
+            font-size: 1.2em;
+            color: #7f8c8d;
+        }
+        .rotate-btn {
+            background-color: #27ae60;
+            max-width: 200px;
+            margin: 20px auto;
+            display: block;
+        }
+        .rotate-btn:hover {
+            background-color: #219653;
+        }
+        .assign-controls {
+            display: flex;
+            gap: 10px;
+        }
+        .assign-controls select {
+            flex: 1;
+        }
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 10px 20px;
+            background: #ddd;
+            cursor: pointer;
+            border-radius: 5px 5px 0 0;
+        }
+        .tab.active {
+            background: white;
+            font-weight: bold;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <h1>Household Chores Manager</h1>
+    
+    <div class="week-indicator">
+        Current Week: <span id="current-week">1</span>
+    </div>
+    
+    <div class="container" id="users-container">
+        <!-- User sections will be generated here -->
+    </div>
+    
+    <button class="rotate-btn" id="rotate-tasks">Rotate Tasks for Next Week</button>
+    
+    <div class="admin-panel">
+        <div class="tabs">
+            <div class="tab active" data-tab="add-task">Add Task</div>
+            <div class="tab" data-tab="assign-task">Assign Task</div>
+            <div class="tab" data-tab="manage-tasks">Manage Tasks</div>
+        </div>
+        
+        <div class="tab-content active" id="add-task">
+            <h2>Add New Task</h2>
+            <div class="form-group">
+                <label for="new-task-name">Task Name:</label>
+                <input type="text" id="new-task-name" placeholder="Enter task name">
+            </div>
+            <div class="form-group">
+                <label for="new-task-frequency">Frequency:</label>
+                <select id="new-task-frequency">
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                </select>
+            </div>
+            <button id="add-task-btn">Add Task</button>
+        </div>
+        
+        <div class="tab-content" id="assign-task">
+            <h2>Assign Task to User</h2>
+            <div class="form-group">
+                <label for="assign-task-select">Select Task:</label>
+                <select id="assign-task-select">
+                    <!-- Tasks will be populated here -->
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="assign-user-select">Assign to User:</label>
+                <select id="assign-user-select">
+                    <!-- Users will be populated here -->
+                </select>
+            </div>
+            <div class="assign-controls">
+                <button id="assign-task-btn">Assign Task</button>
+                <button id="unassign-task-btn">Unassign Task</button>
+            </div>
+        </div>
+        
+        <div class="tab-content" id="manage-tasks">
+            <h2>Manage Tasks</h2>
+            <div class="form-group">
+                <label for="task-to-remove">Select Task to Remove:</label>
+                <select id="task-to-remove">
+                    <!-- Tasks will be populated here -->
+                </select>
+            </div>
+            <button id="remove-task-btn">Remove Task</button>
+        </div>
+    </div>
+
+    <script>
+        // Initialize data
+        let householdData = {
+            currentWeek: 1,
+            users: [
+                { id: 1, name: "User 1", tasks: [] },
+                { id: 2, name: "User 2", tasks: [] },
+                { id: 3, name: "User 3", tasks: [] },
+                { id: 4, name: "User 4", tasks: [] },
+                { id: 5, name: "User 5", tasks: [] }
+            ],
+            allTasks: [
+                // Format: { id, name, frequency, assignedUsers: [userIds] }
+            ]
+        };
+
+        // DOM elements
+        const usersContainer = document.getElementById('users-container');
+        const currentWeekSpan = document.getElementById('current-week');
+        const rotateBtn = document.getElementById('rotate-tasks');
+        const addTaskBtn = document.getElementById('add-task-btn');
+        const removeTaskBtn = document.getElementById('remove-task-btn');
+        const assignTaskBtn = document.getElementById('assign-task-btn');
+        const unassignTaskBtn = document.getElementById('unassign-task-btn');
+        const newTaskName = document.getElementById('new-task-name');
+        const newTaskFrequency = document.getElementById('new-task-frequency');
+        const taskToRemove = document.getElementById('task-to-remove');
+        const assignTaskSelect = document.getElementById('assign-task-select');
+        const assignUserSelect = document.getElementById('assign-user-select');
+        const tabs = document.querySelectorAll('.tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        // Initialize the app
+        function initApp() {
+            loadData();
+            renderUsers();
+            updateWeekDisplay();
+            populateDropdowns();
+            setupEventListeners();
+            setupTabs();
+        }
+
+        // Load data from localStorage
+        function loadData() {
+            const savedData = localStorage.getItem('householdChoresData');
+            if (savedData) {
+                householdData = JSON.parse(savedData);
+            } else {
+                // Add some sample tasks if no data exists
+                if (householdData.allTasks.length === 0) {
+                    addNewTask("Wash dishes", "daily");
+                    addNewTask("Vacuum living room", "weekly");
+                    addNewTask("Clean bathroom", "weekly");
+                    addNewTask("Take out trash", "daily");
+                    addNewTask("Mow lawn", "monthly");
+                    
+                    // Assign some initial tasks
+                    assignTaskToUser(1, 1); // Assign task 1 to user 1
+                    assignTaskToUser(2, 2); // Assign task 2 to user 2
+                    assignTaskToUser(3, 3); // Assign task 3 to user 3
+                    assignTaskToUser(4, 4); // Assign task 4 to user 4
+                    assignTaskToUser(5, 5); // Assign task 5 to user 5
+                }
+            }
+        }
+
+        // Save data to localStorage
+        function saveData() {
+            localStorage.setItem('householdChoresData', JSON.stringify(householdData));
+        }
+
+        // Render user sections
+        function renderUsers() {
+            usersContainer.innerHTML = '';
+            
+            householdData.users.forEach(user => {
+                const userSection = document.createElement('div');
+                userSection.className = 'user-section';
+                
+                const userHeader = document.createElement('div');
+                userHeader.className = 'user-header';
+                
+                const userName = document.createElement('div');
+                userName.className = 'user-name';
+                userName.textContent = user.name;
+                
+                userHeader.appendChild(userName);
+                userSection.appendChild(userHeader);
+                
+                const taskList = document.createElement('ul');
+                taskList.className = 'task-list';
+                
+                user.tasks.forEach(task => {
+                    const taskItem = document.createElement('li');
+                    taskItem.className = 'task-item';
+                    
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.className = 'task-checkbox';
+                    checkbox.checked = task.completed || false;
+                    checkbox.addEventListener('change', () => {
+                        task.completed = checkbox.checked;
+                        saveData();
+                    });
+                    
+                    const taskName = document.createElement('span');
+                    taskName.className = `task-name ${task.completed ? 'completed' : ''}`;
+                    taskName.textContent = task.name;
+                    
+                    const frequencyBadge = document.createElement('span');
+                    frequencyBadge.className = 'task-frequency';
+                    frequencyBadge.textContent = `(${task.frequency})`;
+                    
+                    taskItem.appendChild(checkbox);
+                    taskItem.appendChild(taskName);
+                    taskItem.appendChild(frequencyBadge);
+                    taskList.appendChild(taskItem);
+                });
+                
+                userSection.appendChild(taskList);
+                usersContainer.appendChild(userSection);
+            });
+        }
+
+        // Update week display
+        function updateWeekDisplay() {
+            currentWeekSpan.textContent = householdData.currentWeek;
+        }
+
+        // Add a new task
+        function addNewTask(name, frequency) {
+            const newTask = {
+                id: Date.now(), // Simple unique ID
+                name: name,
+                frequency: frequency,
+                assignedUsers: [] // Start with no assignments
+            };
+            
+            householdData.allTasks.push(newTask);
+            saveData();
+            populateDropdowns();
+        }
+
+        // Remove a task
+        function removeTask() {
+            const taskId = parseInt(taskToRemove.value);
+            if (!taskId) return;
+            
+            // Remove from allTasks
+            householdData.allTasks = householdData.allTasks.filter(task => task.id !== taskId);
+            
+            // Remove from all users' task lists
+            householdData.users.forEach(user => {
+                user.tasks = user.tasks.filter(task => task.id !== taskId);
+            });
+            
+            saveData();
+            renderUsers();
+            populateDropdowns();
+        }
+
+        // Assign task to user
+        function assignTaskToUser(taskId, userId) {
+            const task = householdData.allTasks.find(t => t.id === taskId);
+            const user = householdData.users.find(u => u.id === userId);
+            
+            if (!task || !user) return;
+            
+            // Add to assignedUsers if not already there
+            if (!task.assignedUsers.includes(userId)) {
+                task.assignedUsers.push(userId);
+            }
+            
+            // Add to user's tasks if not already there
+            if (!user.tasks.some(t => t.id === taskId)) {
+                user.tasks.push({
+                    id: task.id,
+                    name: task.name,
+                    frequency: task.frequency,
+                    completed: false
+                });
+            }
+            
+            saveData();
+            renderUsers();
+        }
+
+        // Unassign task from user
+        function unassignTaskFromUser(taskId, userId) {
+            const task = householdData.allTasks.find(t => t.id === taskId);
+            const user = householdData.users.find(u => u.id === userId);
+            
+            if (!task || !user) return;
+            
+            // Remove from task's assignedUsers
+            task.assignedUsers = task.assignedUsers.filter(id => id !== userId);
+            
+            // Remove from user's tasks
+            user.tasks = user.tasks.filter(t => t.id !== taskId);
+            
+            saveData();
+            renderUsers();
+        }
+
+        // Rotate tasks to next week
+        function rotateTasks() {
+            householdData.currentWeek++;
+            
+            // For each task, rotate to next assigned user
+            householdData.allTasks.forEach(task => {
+                if (task.assignedUsers.length > 0) {
+                    // Remove from all users first
+                    householdData.users.forEach(user => {
+                        user.tasks = user.tasks.filter(t => t.id !== task.id);
+                    });
+                    
+                    // Rotate the assigned users array
+                    const firstUser = task.assignedUsers.shift();
+                    task.assignedUsers.push(firstUser);
+                    
+                    // Assign to all users in the rotated array
+                    task.assignedUsers.forEach(userId => {
+                        const user = householdData.users.find(u => u.id === userId);
+                        if (user) {
+                            user.tasks.push({
+                                id: task.id,
+                                name: task.name,
+                                frequency: task.frequency,
+                                completed: false
+                            });
+                        }
+                    });
+                }
+            });
+            
+            saveData();
+            renderUsers();
+            updateWeekDisplay();
+        }
+
+        // Populate all dropdowns
+        function populateDropdowns() {
+            // Task remove dropdown
+            taskToRemove.innerHTML = '<option value="">Select a task</option>';
+            
+            // Task assign dropdown
+            assignTaskSelect.innerHTML = '<option value="">Select a task</option>';
+            
+            householdData.allTasks.forEach(task => {
+                const option1 = document.createElement('option');
+                option1.value = task.id;
+                option1.textContent = task.name;
+                taskToRemove.appendChild(option1);
+                
+                const option2 = document.createElement('option');
+                option2.value = task.id;
+                option2.textContent = task.name;
+                assignTaskSelect.appendChild(option2);
+            });
+            
+            // User assign dropdown
+            assignUserSelect.innerHTML = '<option value="">Select a user</option>';
+            householdData.users.forEach(user => {
+                const option = document.createElement('option');
+                option.value = user.id;
+                option.textContent = user.name;
+                assignUserSelect.appendChild(option);
+            });
+        }
+
+        // Set up tab switching
+        function setupTabs() {
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    // Remove active class from all tabs and contents
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tabContents.forEach(c => c.classList.remove('active'));
+                    
+                    // Add active class to clicked tab and corresponding content
+                    tab.classList.add('active');
+                    const tabId = tab.getAttribute('data-tab');
+                    document.getElementById(tabId).classList.add('active');
+                });
+            });
+        }
+
+        // Set up event listeners
+        function setupEventListeners() {
+            addTaskBtn.addEventListener('click', () => {
+                const name = newTaskName.value.trim();
+                const frequency = newTaskFrequency.value;
+                
+                if (name) {
+                    addNewTask(name, frequency);
+                    newTaskName.value = '';
+                }
+            });
+            
+            removeTaskBtn.addEventListener('click', removeTask);
+            
+            assignTaskBtn.addEventListener('click', () => {
+                const taskId = parseInt(assignTaskSelect.value);
+                const userId = parseInt(assignUserSelect.value);
+                
+                if (taskId && userId) {
+                    assignTaskToUser(taskId, userId);
+                }
+            });
+            
+            unassignTaskBtn.addEventListener('click', () => {
+                const taskId = parseInt(assignTaskSelect.value);
+                const userId = parseInt(assignUserSelect.value);
+                
+                if (taskId && userId) {
+                    unassignTaskFromUser(taskId, userId);
+                }
+            });
+            
+            rotateBtn.addEventListener('click', rotateTasks);
+        }
+
+        // Start the app
+        initApp();
+    </script>
+</body>
+</html>
