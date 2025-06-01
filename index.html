@@ -15,58 +15,93 @@
         h1 {
             color: #2c3e50;
             text-align: center;
+            margin-top: 40px;
         }
-        .container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-        }
-        .user-section {
-            flex: 1;
-            min-width: 250px;
+        .shared-view {
             background: white;
             border-radius: 8px;
-            padding: 15px;
+            padding: 20px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .user-group {
+            margin-bottom: 25px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 15px;
+        }
+        .user-group:last-child {
+            border-bottom: none;
         }
         .user-header {
             display: flex;
-            justify-content: space-between;
             align-items: center;
             margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #eee;
         }
         .user-name {
             font-weight: bold;
-            font-size: 1.2em;
+            font-size: 1.3em;
             color: #3498db;
+            margin-right: 15px;
+        }
+        .completion-rate {
+            font-size: 0.9em;
+            color: #7f8c8d;
         }
         .task-list {
             list-style-type: none;
             padding: 0;
+            margin: 0;
         }
         .task-item {
             display: flex;
             align-items: center;
-            padding: 8px 0;
-            border-bottom: 1px solid #f0f0f0;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 5px;
+            background-color: #f9f9f9;
+        }
+        .task-item:hover {
+            background-color: #f0f0f0;
         }
         .task-checkbox {
-            margin-right: 10px;
-            order: -1; /* This moves the checkbox to the left */
+            margin-right: 15px;
+            transform: scale(1.2);
         }
         .task-name {
             flex-grow: 1;
         }
         .task-frequency {
             font-size: 0.8em;
-            color: #7f8c8d;
-            margin-left: 5px;
+            color: white;
+            background-color: #7f8c8d;
+            padding: 3px 8px;
+            border-radius: 10px;
+            margin-left: 10px;
         }
         .completed {
             text-decoration: line-through;
             color: #95a5a6;
+        }
+        .week-indicator {
+            text-align: center;
+            margin: 20px 0;
+            font-size: 1.2em;
+            color: #7f8c8d;
+        }
+        .rotate-btn {
+            background-color: #27ae60;
+            max-width: 200px;
+            margin: 20px auto;
+            display: block;
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .rotate-btn:hover {
+            background-color: #219653;
         }
         .admin-panel {
             background: white;
@@ -101,21 +136,6 @@
         button:hover {
             background-color: #2980b9;
         }
-        .week-indicator {
-            text-align: center;
-            margin: 20px 0;
-            font-size: 1.2em;
-            color: #7f8c8d;
-        }
-        .rotate-btn {
-            background-color: #27ae60;
-            max-width: 200px;
-            margin: 20px auto;
-            display: block;
-        }
-        .rotate-btn:hover {
-            background-color: #219653;
-        }
         .assign-controls {
             display: flex;
             gap: 10px;
@@ -126,12 +146,15 @@
         .tabs {
             display: flex;
             margin-bottom: 20px;
+            flex-wrap: wrap;
         }
         .tab {
             padding: 10px 20px;
             background: #ddd;
             cursor: pointer;
             border-radius: 5px 5px 0 0;
+            margin-right: 5px;
+            margin-bottom: 5px;
         }
         .tab.active {
             background: white;
@@ -143,17 +166,93 @@
         .tab-content.active {
             display: block;
         }
+        /* Admin monitoring styles */
+        .admin-login {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .admin-view {
+            display: none;
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        .progress-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .progress-card {
+            background: white;
+            color: #2c3e50;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .progress-bar {
+            height: 20px;
+            background: #ecf0f1;
+            border-radius: 10px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: #27ae60;
+            transition: width 0.5s ease;
+        }
+        .export-btn {
+            background: #e67e22;
+            margin-top: 20px;
+        }
+        .export-btn:hover {
+            background: #d35400;
+        }
+        .hidden {
+            display: none;
+        }
+        .frequency-stats {
+            margin-top: 10px;
+        }
+        .frequency-stats p {
+            margin: 5px 0;
+            font-size: 0.9em;
+        }
+        #admin-login-form {
+            margin-top: 10px;
+        }
+        #admin-login-form input {
+            margin-bottom: 5px;
+        }
     </style>
 </head>
 <body>
+    <!-- Admin Login Toggle -->
+    <div class="admin-login">
+        <button id="admin-toggle">Admin Mode</button>
+        <div id="admin-login-form" class="hidden">
+            <input type="password" id="admin-password" placeholder="Enter admin password">
+            <button id="admin-login-btn">Login</button>
+        </div>
+    </div>
+
     <h1>Household Chores Manager</h1>
     
     <div class="week-indicator">
         Current Week: <span id="current-week">1</span>
     </div>
     
-    <div class="container" id="users-container">
-        <!-- User sections will be generated here -->
+    <div class="shared-view" id="shared-container">
+        <!-- All users' tasks will be displayed here together -->
     </div>
     
     <button class="rotate-btn" id="rotate-tasks">Rotate Tasks for Next Week</button>
@@ -164,6 +263,7 @@
             <div class="tab" data-tab="assign-task">Assign Task</div>
             <div class="tab" data-tab="manage-tasks">Manage Tasks</div>
             <div class="tab" data-tab="manage-users">Manage Users</div>
+            <div class="tab" data-tab="progress-tracker">Progress Tracker</div>
         </div>
         
         <div class="tab-content active" id="add-task">
@@ -228,6 +328,20 @@
             </div>
             <button id="rename-user-btn">Rename User</button>
         </div>
+        
+        <div class="tab-content" id="progress-tracker">
+            <h2>Progress Monitoring</h2>
+            <div class="admin-view" id="admin-dashboard">
+                <h3>Household Completion Rates</h3>
+                <div class="progress-grid" id="progress-grid">
+                    <!-- Progress cards will be generated here -->
+                </div>
+                <button class="export-btn" id="export-data">Export Progress Data</button>
+            </div>
+            <div id="admin-message">
+                <p>Please enable admin mode to view progress tracking.</p>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -241,13 +355,15 @@
                 { id: 4, name: "User 4", tasks: [] },
                 { id: 5, name: "User 5", tasks: [] }
             ],
-            allTasks: [
-                // Format: { id, name, frequency, assignedUsers: [userIds] }
-            ]
+            allTasks: []
         };
 
+        // Configuration
+        const ADMIN_PASSWORD = "household123"; // Change this to your preferred password
+        let isAdmin = false;
+
         // DOM elements
-        const usersContainer = document.getElementById('users-container');
+        const sharedContainer = document.getElementById('shared-container');
         const currentWeekSpan = document.getElementById('current-week');
         const rotateBtn = document.getElementById('rotate-tasks');
         const addTaskBtn = document.getElementById('add-task-btn');
@@ -264,15 +380,26 @@
         const newUserName = document.getElementById('new-user-name');
         const tabs = document.querySelectorAll('.tab');
         const tabContents = document.querySelectorAll('.tab-content');
+        
+        // Admin elements
+        const adminToggle = document.getElementById('admin-toggle');
+        const adminLoginForm = document.getElementById('admin-login-form');
+        const adminPassword = document.getElementById('admin-password');
+        const adminLoginBtn = document.getElementById('admin-login-btn');
+        const adminDashboard = document.getElementById('admin-dashboard');
+        const adminMessage = document.getElementById('admin-message');
+        const progressGrid = document.getElementById('progress-grid');
+        const exportBtn = document.getElementById('export-data');
 
         // Initialize the app
         function initApp() {
             loadData();
-            renderUsers();
+            renderSharedView();
             updateWeekDisplay();
             populateDropdowns();
             setupEventListeners();
             setupTabs();
+            setupAdminFeatures();
         }
 
         // Load data from localStorage
@@ -290,11 +417,11 @@
                     addNewTask("Mow lawn", "monthly");
                     
                     // Assign some initial tasks
-                    assignTaskToUser(1, 1); // Assign task 1 to user 1
-                    assignTaskToUser(2, 2); // Assign task 2 to user 2
-                    assignTaskToUser(3, 3); // Assign task 3 to user 3
-                    assignTaskToUser(4, 4); // Assign task 4 to user 4
-                    assignTaskToUser(5, 5); // Assign task 5 to user 5
+                    assignTaskToUser(1, 1);
+                    assignTaskToUser(2, 2);
+                    assignTaskToUser(3, 3);
+                    assignTaskToUser(4, 4);
+                    assignTaskToUser(5, 5);
                 }
             }
         }
@@ -304,13 +431,19 @@
             localStorage.setItem('householdChoresData', JSON.stringify(householdData));
         }
 
-        // Render user sections
-        function renderUsers() {
-            usersContainer.innerHTML = '';
+        // Render shared view of all users' tasks
+        function renderSharedView() {
+            sharedContainer.innerHTML = '';
             
             householdData.users.forEach(user => {
-                const userSection = document.createElement('div');
-                userSection.className = 'user-section';
+                const totalTasks = user.tasks.length;
+                const completedTasks = user.tasks.filter(t => t.completed).length;
+                const completionRate = totalTasks > 0 
+                    ? Math.round((completedTasks / totalTasks) * 100) 
+                    : 0;
+                
+                const userGroup = document.createElement('div');
+                userGroup.className = 'user-group';
                 
                 const userHeader = document.createElement('div');
                 userHeader.className = 'user-header';
@@ -319,8 +452,13 @@
                 userName.className = 'user-name';
                 userName.textContent = user.name;
                 
+                const completionBadge = document.createElement('div');
+                completionBadge.className = 'completion-rate';
+                completionBadge.textContent = `${completionRate}% completed`;
+                
                 userHeader.appendChild(userName);
-                userSection.appendChild(userHeader);
+                userHeader.appendChild(completionBadge);
+                userGroup.appendChild(userHeader);
                 
                 const taskList = document.createElement('ul');
                 taskList.className = 'task-list';
@@ -336,6 +474,8 @@
                     checkbox.addEventListener('change', () => {
                         task.completed = checkbox.checked;
                         saveData();
+                        renderSharedView();
+                        if (isAdmin) renderAdminDashboard();
                     });
                     
                     const taskName = document.createElement('span');
@@ -344,7 +484,7 @@
                     
                     const frequencyBadge = document.createElement('span');
                     frequencyBadge.className = 'task-frequency';
-                    frequencyBadge.textContent = `(${task.frequency})`;
+                    frequencyBadge.textContent = task.frequency;
                     
                     taskItem.appendChild(checkbox);
                     taskItem.appendChild(taskName);
@@ -352,8 +492,8 @@
                     taskList.appendChild(taskItem);
                 });
                 
-                userSection.appendChild(taskList);
-                usersContainer.appendChild(userSection);
+                userGroup.appendChild(taskList);
+                sharedContainer.appendChild(userGroup);
             });
         }
 
@@ -363,8 +503,9 @@
             if (user && newName.trim()) {
                 user.name = newName.trim();
                 saveData();
-                renderUsers();
+                renderSharedView();
                 populateDropdowns();
+                if (isAdmin) renderAdminDashboard();
             }
         }
 
@@ -376,10 +517,10 @@
         // Add a new task
         function addNewTask(name, frequency) {
             const newTask = {
-                id: Date.now(), // Simple unique ID
+                id: Date.now(),
                 name: name,
                 frequency: frequency,
-                assignedUsers: [] // Start with no assignments
+                assignedUsers: []
             };
             
             householdData.allTasks.push(newTask);
@@ -392,17 +533,16 @@
             const taskId = parseInt(taskToRemove.value);
             if (!taskId) return;
             
-            // Remove from allTasks
             householdData.allTasks = householdData.allTasks.filter(task => task.id !== taskId);
             
-            // Remove from all users' task lists
             householdData.users.forEach(user => {
                 user.tasks = user.tasks.filter(task => task.id !== taskId);
             });
             
             saveData();
-            renderUsers();
+            renderSharedView();
             populateDropdowns();
+            if (isAdmin) renderAdminDashboard();
         }
 
         // Assign task to user
@@ -412,12 +552,10 @@
             
             if (!task || !user) return;
             
-            // Add to assignedUsers if not already there
             if (!task.assignedUsers.includes(userId)) {
                 task.assignedUsers.push(userId);
             }
             
-            // Add to user's tasks if not already there
             if (!user.tasks.some(t => t.id === taskId)) {
                 user.tasks.push({
                     id: task.id,
@@ -428,7 +566,8 @@
             }
             
             saveData();
-            renderUsers();
+            renderSharedView();
+            if (isAdmin) renderAdminDashboard();
         }
 
         // Unassign task from user
@@ -438,33 +577,27 @@
             
             if (!task || !user) return;
             
-            // Remove from task's assignedUsers
             task.assignedUsers = task.assignedUsers.filter(id => id !== userId);
-            
-            // Remove from user's tasks
             user.tasks = user.tasks.filter(t => t.id !== taskId);
             
             saveData();
-            renderUsers();
+            renderSharedView();
+            if (isAdmin) renderAdminDashboard();
         }
 
         // Rotate tasks to next week
         function rotateTasks() {
             householdData.currentWeek++;
             
-            // For each task, rotate to next assigned user
             householdData.allTasks.forEach(task => {
                 if (task.assignedUsers.length > 0) {
-                    // Remove from all users first
                     householdData.users.forEach(user => {
                         user.tasks = user.tasks.filter(t => t.id !== task.id);
                     });
                     
-                    // Rotate the assigned users array
                     const firstUser = task.assignedUsers.shift();
                     task.assignedUsers.push(firstUser);
                     
-                    // Assign to all users in the rotated array
                     task.assignedUsers.forEach(userId => {
                         const user = householdData.users.find(u => u.id === userId);
                         if (user) {
@@ -480,20 +613,17 @@
             });
             
             saveData();
-            renderUsers();
+            renderSharedView();
             updateWeekDisplay();
+            if (isAdmin) renderAdminDashboard();
         }
 
         // Populate all dropdowns
         function populateDropdowns() {
-            // Task remove dropdown
             taskToRemove.innerHTML = '<option value="">Select a task</option>';
-            
-            // Task assign dropdown
             assignTaskSelect.innerHTML = '<option value="">Select a task</option>';
-            
-            // User rename dropdown
             userToRename.innerHTML = '<option value="">Select a user</option>';
+            assignUserSelect.innerHTML = '<option value="">Select a user</option>';
             
             householdData.allTasks.forEach(task => {
                 const option1 = document.createElement('option');
@@ -507,10 +637,6 @@
                 assignTaskSelect.appendChild(option2);
             });
             
-            // User assign dropdown
-            assignUserSelect.innerHTML = '<option value="">Select a user</option>';
-            
-            // Populate user dropdowns
             householdData.users.forEach(user => {
                 const option1 = document.createElement('option');
                 option1.value = user.id;
@@ -528,16 +654,117 @@
         function setupTabs() {
             tabs.forEach(tab => {
                 tab.addEventListener('click', () => {
-                    // Remove active class from all tabs and contents
                     tabs.forEach(t => t.classList.remove('active'));
                     tabContents.forEach(c => c.classList.remove('active'));
                     
-                    // Add active class to clicked tab and corresponding content
                     tab.classList.add('active');
                     const tabId = tab.getAttribute('data-tab');
                     document.getElementById(tabId).classList.add('active');
+                    
+                    if (tabId === 'progress-tracker') {
+                        renderAdminDashboard();
+                    }
                 });
             });
+        }
+
+        // Admin features
+        function setupAdminFeatures() {
+            adminToggle.addEventListener('click', () => {
+                adminLoginForm.classList.toggle('hidden');
+            });
+            
+            adminLoginBtn.addEventListener('click', () => {
+                if (adminPassword.value === ADMIN_PASSWORD) {
+                    isAdmin = true;
+                    adminLoginForm.classList.add('hidden');
+                    adminToggle.textContent = "Admin Mode (ON)";
+                    adminToggle.style.background = "#27ae60";
+                    renderAdminDashboard();
+                } else {
+                    alert("Incorrect password");
+                }
+            });
+            
+            exportBtn.addEventListener('click', exportProgressData);
+        }
+
+        function renderAdminDashboard() {
+            if (!isAdmin) {
+                adminDashboard.style.display = "none";
+                adminMessage.style.display = "block";
+                return;
+            }
+            
+            adminDashboard.style.display = "block";
+            adminMessage.style.display = "none";
+            progressGrid.innerHTML = '';
+            
+            householdData.users.forEach(user => {
+                const totalTasks = user.tasks.length;
+                const completedTasks = user.tasks.filter(t => t.completed).length;
+                const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+                
+                const frequencyStats = {
+                    daily: { total: 0, completed: 0 },
+                    weekly: { total: 0, completed: 0 },
+                    monthly: { total: 0, completed: 0 }
+                };
+                
+                user.tasks.forEach(task => {
+                    frequencyStats[task.frequency].total++;
+                    if (task.completed) frequencyStats[task.frequency].completed++;
+                });
+                
+                const card = document.createElement('div');
+                card.className = 'progress-card';
+                
+                card.innerHTML = `
+                    <h4>${user.name}</h4>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${completionRate}%"></div>
+                    </div>
+                    <p>${completionRate}% Overall Completion</p>
+                    <div class="frequency-stats">
+                        <p>Daily: ${frequencyStats.daily.completed}/${frequencyStats.daily.total}</p>
+                        <p>Weekly: ${frequencyStats.weekly.completed}/${frequencyStats.weekly.total}</p>
+                        <p>Monthly: ${frequencyStats.monthly.completed}/${frequencyStats.monthly.total}</p>
+                    </div>
+                `;
+                
+                progressGrid.appendChild(card);
+            });
+        }
+
+        function exportProgressData() {
+            if (!isAdmin) return;
+            
+            const data = {
+                timestamp: new Date().toISOString(),
+                week: householdData.currentWeek,
+                users: householdData.users.map(user => {
+                    const tasks = user.tasks.map(task => ({
+                        name: task.name,
+                        frequency: task.frequency,
+                        completed: task.completed,
+                        lastUpdated: new Date().toISOString()
+                    }));
+                    
+                    return {
+                        name: user.name,
+                        completionRate: Math.round((user.tasks.filter(t => t.completed).length / user.tasks.length * 100) || 0,
+                        tasks: tasks
+                    };
+                })
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `household-progress-week-${householdData.currentWeek}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
         }
 
         // Set up event listeners
