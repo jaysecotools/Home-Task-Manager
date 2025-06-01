@@ -345,6 +345,10 @@
     </div>
 
     <script>
+        // Configuration
+        const ADMIN_PASSWORD = "household123"; // Change this to your preferred password
+        let isAdmin = false;
+
         // Initialize data
         let householdData = {
             currentWeek: 1,
@@ -357,10 +361,6 @@
             ],
             allTasks: []
         };
-
-        // Configuration
-        const ADMIN_PASSWORD = "household123"; // Change this to your preferred password
-        let isAdmin = false;
 
         // DOM elements
         const sharedContainer = document.getElementById('shared-container');
@@ -391,17 +391,6 @@
         const progressGrid = document.getElementById('progress-grid');
         const exportBtn = document.getElementById('export-data');
 
-        // Initialize the app
-        function initApp() {
-            loadData();
-            renderSharedView();
-            updateWeekDisplay();
-            populateDropdowns();
-            setupEventListeners();
-            setupTabs();
-            setupAdminFeatures();
-        }
-
         // Load data from localStorage
         function loadData() {
             const savedData = localStorage.getItem('householdChoresData');
@@ -409,26 +398,65 @@
                 householdData = JSON.parse(savedData);
             } else {
                 // Add some sample tasks if no data exists
-                if (householdData.allTasks.length === 0) {
-                    addNewTask("Wash dishes", "daily");
-                    addNewTask("Vacuum living room", "weekly");
-                    addNewTask("Clean bathroom", "weekly");
-                    addNewTask("Take out trash", "daily");
-                    addNewTask("Mow lawn", "monthly");
-                    
-                    // Assign some initial tasks
-                    assignTaskToUser(1, 1);
-                    assignTaskToUser(2, 2);
-                    assignTaskToUser(3, 3);
-                    assignTaskToUser(4, 4);
-                    assignTaskToUser(5, 5);
-                }
+                addNewTask("Wash dishes", "daily");
+                addNewTask("Vacuum living room", "weekly");
+                addNewTask("Clean bathroom", "weekly");
+                addNewTask("Take out trash", "daily");
+                addNewTask("Mow lawn", "monthly");
+                
+                // Assign some initial tasks
+                assignTaskToUser(1, 1);
+                assignTaskToUser(2, 2);
+                assignTaskToUser(3, 3);
+                assignTaskToUser(4, 4);
+                assignTaskToUser(5, 5);
+                
+                saveData(); // Save the initial data
             }
         }
 
         // Save data to localStorage
         function saveData() {
             localStorage.setItem('householdChoresData', JSON.stringify(householdData));
+        }
+
+        // Add a new task
+        function addNewTask(name, frequency) {
+            const newTask = {
+                id: Date.now(),
+                name: name,
+                frequency: frequency,
+                assignedUsers: []
+            };
+            
+            householdData.allTasks.push(newTask);
+            saveData();
+            populateDropdowns();
+        }
+
+        // Assign task to user
+        function assignTaskToUser(taskId, userId) {
+            const task = householdData.allTasks.find(t => t.id === taskId);
+            const user = householdData.users.find(u => u.id === userId);
+            
+            if (!task || !user) return;
+            
+            if (!task.assignedUsers.includes(userId)) {
+                task.assignedUsers.push(userId);
+            }
+            
+            if (!user.tasks.some(t => t.id === taskId)) {
+                user.tasks.push({
+                    id: task.id,
+                    name: task.name,
+                    frequency: task.frequency,
+                    completed: false
+                });
+            }
+            
+            saveData();
+            renderSharedView();
+            if (isAdmin) renderAdminDashboard();
         }
 
         // Render shared view of all users' tasks
@@ -514,20 +542,6 @@
             currentWeekSpan.textContent = householdData.currentWeek;
         }
 
-        // Add a new task
-        function addNewTask(name, frequency) {
-            const newTask = {
-                id: Date.now(),
-                name: name,
-                frequency: frequency,
-                assignedUsers: []
-            };
-            
-            householdData.allTasks.push(newTask);
-            saveData();
-            populateDropdowns();
-        }
-
         // Remove a task
         function removeTask() {
             const taskId = parseInt(taskToRemove.value);
@@ -542,31 +556,6 @@
             saveData();
             renderSharedView();
             populateDropdowns();
-            if (isAdmin) renderAdminDashboard();
-        }
-
-        // Assign task to user
-        function assignTaskToUser(taskId, userId) {
-            const task = householdData.allTasks.find(t => t.id === taskId);
-            const user = householdData.users.find(u => u.id === userId);
-            
-            if (!task || !user) return;
-            
-            if (!task.assignedUsers.includes(userId)) {
-                task.assignedUsers.push(userId);
-            }
-            
-            if (!user.tasks.some(t => t.id === taskId)) {
-                user.tasks.push({
-                    id: task.id,
-                    name: task.name,
-                    frequency: task.frequency,
-                    completed: false
-                });
-            }
-            
-            saveData();
-            renderSharedView();
             if (isAdmin) renderAdminDashboard();
         }
 
@@ -752,7 +741,7 @@
                     
                     return {
                         name: user.name,
-                        completionRate: Math.round((user.tasks.filter(t => t.completed).length / user.tasks.length * 100) || 0,
+                        completionRate: Math.round((user.tasks.filter(t => t.completed).length / user.tasks.length) * 100) || 0,
                         tasks: tasks
                     };
                 })
@@ -810,6 +799,17 @@
             });
             
             rotateBtn.addEventListener('click', rotateTasks);
+        }
+
+        // Initialize the app
+        function initApp() {
+            loadData();
+            renderSharedView();
+            updateWeekDisplay();
+            populateDropdowns();
+            setupEventListeners();
+            setupTabs();
+            setupAdminFeatures();
         }
 
         // Start the app
