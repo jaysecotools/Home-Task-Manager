@@ -357,11 +357,13 @@
         </div>
     </div>
 
-    <!-- Firebase SDK + Firestore integration -->
+    <!-- Firebase SDK + Realtime Database integration -->
     <script type="module">
+        // Import the functions you need from the SDKs you need
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
+        // Your web app's Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyCi9sLJbYKFTSuw6IvFBePa0gbcQYrqoS8",
             authDomain: "jobs-list-225a7.firebaseapp.com",
@@ -369,12 +371,14 @@
             storageBucket: "jobs-list-225a7.appspot.com",
             messagingSenderId: "15469992980",
             appId: "1:15469992980:web:e4464c09c183b3f4251b01",
-            measurementId: "G-Y1NTGTN88G"
+            measurementId: "G-Y1NTGTN88G",
+            databaseURL: "https://jobs-list-225a7-default-rtdb.firebaseio.com"
         };
 
+        // Initialize Firebase
         const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const docRef = doc(db, "household", "sharedData");
+        const db = getDatabase(app);
+        const dbRef = ref(db, 'householdData');
 
         // Configuration
         const ADMIN_PASSWORD = "household123"; // Change this to your preferred password
@@ -423,48 +427,43 @@
         const progressGrid = document.getElementById('progress-grid');
         const exportBtn = document.getElementById('export-data');
 
-        // Save to Firestore
-        async function saveToFirestore() {
+        // Save to Realtime Database
+        async function saveToDatabase() {
             try {
                 syncStatus.textContent = "Saving to cloud...";
-                await setDoc(docRef, householdData);
+                await set(dbRef, householdData);
                 syncStatus.textContent = "Synced";
                 setTimeout(() => syncStatus.textContent = "", 2000);
             } catch (error) {
-                console.error("Error saving to Firestore:", error);
+                console.error("Error saving to database:", error);
                 syncStatus.textContent = "Sync failed";
             }
         }
 
-        // Load from Firestore once
-        async function loadFromFirestore() {
+        // Load from Realtime Database
+        function loadFromDatabase() {
             try {
                 syncStatus.textContent = "Loading from cloud...";
-                const snap = await getDoc(docRef);
-                if (snap.exists()) {
-                    householdData = snap.data();
-                    syncStatus.textContent = "Synced";
-                    setTimeout(() => syncStatus.textContent = "", 2000);
-                }
+                onValue(dbRef, (snapshot) => {
+                    const data = snapshot.val();
+                    if (data) {
+                        householdData = data;
+                        saveDataLocally();
+                        renderSharedView();
+                        updateWeekDisplay();
+                        populateDropdowns();
+                        if (isAdmin) renderAdminDashboard();
+                        syncStatus.textContent = "Synced";
+                        setTimeout(() => syncStatus.textContent = "", 2000);
+                    }
+                }, {
+                    onlyOnce: false // Listen for real-time updates
+                });
             } catch (error) {
-                console.error("Error loading from Firestore:", error);
+                console.error("Error loading from database:", error);
                 syncStatus.textContent = "Sync failed";
             }
         }
-
-        // Listen for real-time updates
-        onSnapshot(docRef, (snap) => {
-            if (snap.exists()) {
-                householdData = snap.data();
-                saveDataLocally();
-                renderSharedView();
-                updateWeekDisplay();
-                populateDropdowns();
-                if (isAdmin) renderAdminDashboard();
-                syncStatus.textContent = "Synced";
-                setTimeout(() => syncStatus.textContent = "", 2000);
-            }
-        });
 
         // Save to localStorage
         function saveDataLocally() {
@@ -474,16 +473,16 @@
         // Combined save function
         async function saveAndSync() {
             saveDataLocally();
-            await saveToFirestore();
+            await saveToDatabase();
         }
 
         // Combined load function
-        async function loadData() {
+        function loadData() {
             const saved = localStorage.getItem('householdChoresData');
             if (saved) {
                 householdData = JSON.parse(saved);
             }
-            await loadFromFirestore();
+            loadFromDatabase();
         }
 
         // Add a new task
@@ -872,8 +871,8 @@
         }
 
         // Initialize the app
-        async function initApp() {
-            await loadData();
+        function initApp() {
+            loadData();
             renderSharedView();
             updateWeekDisplay();
             populateDropdowns();
@@ -883,18 +882,18 @@
             
             // Add sample data if no tasks exist
             if (householdData.allTasks.length === 0) {
-                await addNewTask("Wash dishes", "daily");
-                await addNewTask("Vacuum living room", "weekly");
-                await addNewTask("Clean bathroom", "weekly");
-                await addNewTask("Take out trash", "daily");
-                await addNewTask("Mow lawn", "monthly");
+                addNewTask("Wash dishes", "daily");
+                addNewTask("Vacuum living room", "weekly");
+                addNewTask("Clean bathroom", "weekly");
+                addNewTask("Take out trash", "daily");
+                addNewTask("Mow lawn", "monthly");
                 
                 // Assign some initial tasks
-                await assignTaskToUser(1, 1);
-                await assignTaskToUser(2, 2);
-                await assignTaskToUser(3, 3);
-                await assignTaskToUser(4, 4);
-                await assignTaskToUser(5, 5);
+                assignTaskToUser(1, 1);
+                assignTaskToUser(2, 2);
+                assignTaskToUser(3, 3);
+                assignTaskToUser(4, 4);
+                assignTaskToUser(5, 5);
             }
         }
 
