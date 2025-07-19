@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -367,12 +366,12 @@
         const firebaseConfig = {
             apiKey: "AIzaSyCi9sLJbYKFTSuw6IvFBePa0gbcQYrqoS8",
             authDomain: "jobs-list-225a7.firebaseapp.com",
+            databaseURL: "https://jobs-list-225a7-default-rtdb.firebaseio.com",
             projectId: "jobs-list-225a7",
             storageBucket: "jobs-list-225a7.appspot.com",
             messagingSenderId: "15469992980",
             appId: "1:15469992980:web:e4464c09c183b3f4251b01",
-            measurementId: "G-Y1NTGTN88G",
-            databaseURL: "https://jobs-list-225a7-default-rtdb.firebaseio.com"
+            measurementId: "G-Y1NTGTN88G"
         };
 
         // Initialize Firebase
@@ -455,9 +454,10 @@
                         if (isAdmin) renderAdminDashboard();
                         syncStatus.textContent = "Synced";
                         setTimeout(() => syncStatus.textContent = "", 2000);
+                    } else {
+                        // If no data exists, save our initial data
+                        saveToDatabase();
                     }
-                }, {
-                    onlyOnce: false // Listen for real-time updates
                 });
             } catch (error) {
                 console.error("Error loading from database:", error);
