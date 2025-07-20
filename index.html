@@ -517,32 +517,42 @@
             populateDropdowns();
         }
 
-        // Assign task to user with validation
-        async function assignTaskToUser(taskId, userId) {
-            if (!taskId || !userId) return;
-            
-            const task = householdData.allTasks.find(t => t.id === taskId);
-            const user = householdData.users.find(u => u.id === userId);
-            
-            if (!task || !user) return;
-            
-            if (!task.assignedUsers.includes(userId)) {
-                task.assignedUsers.push(userId);
-            }
-            
-            if (!user.tasks.some(t => t.id === taskId)) {
-                user.tasks.push({
-                    id: task.id,
-                    name: task.name,
-                    frequency: task.frequency,
-                    completed: false
-                });
-            }
-            
-            await saveAndSync();
-            renderSharedView();
-            if (isAdmin) renderAdminDashboard();
-        }
+// Assign tasks to user
+async function assignTaskToUser(taskId, userId) {
+    if (!taskId || !userId) return;
+    
+    const task = householdData.allTasks.find(t => t.id === taskId);
+    const user = householdData.users.find(u => u.id === userId);
+    
+    if (!task || !user) return;
+    
+    // Initialize assignedUsers array if it doesn't exist
+    if (!task.assignedUsers) {
+        task.assignedUsers = [];
+    }
+    
+    if (!task.assignedUsers.includes(userId)) {
+        task.assignedUsers.push(userId);
+    }
+    
+    // Initialize user.tasks array if it doesn't exist
+    if (!user.tasks) {
+        user.tasks = [];
+    }
+    
+    if (!user.tasks.some(t => t.id === taskId)) {
+        user.tasks.push({
+            id: task.id,
+            name: task.name,
+            frequency: task.frequency,
+            completed: false
+        });
+    }
+    
+    await saveAndSync();
+    renderSharedView();
+    if (isAdmin) renderAdminDashboard();
+}
 
         // Render shared view of all users' tasks with null checks
         function renderSharedView() {
