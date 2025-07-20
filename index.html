@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -477,7 +478,8 @@
                 { id: 4, name: "User 4", tasks: [] },
                 { id: 5, name: "User 5", tasks: [] }
             ],
-            allTasks: []
+            allTasks: [],
+            lastResetDate: new Date().toISOString()
         };
 
         // Current app data
@@ -527,6 +529,11 @@
                 householdData.currentWeek = defaultData.currentWeek;
             }
             
+            // Ensure lastResetDate exists
+            if (!householdData.lastResetDate) {
+                householdData.lastResetDate = new Date().toISOString();
+            }
+            
             // Ensure users array exists and is properly structured
             if (!Array.isArray(householdData.users)) {
                 householdData.users = JSON.parse(JSON.stringify(defaultData.users));
@@ -535,6 +542,11 @@
                     if (!user.id) user.id = Date.now();
                     if (!user.name) user.name = `User ${user.id}`;
                     if (!Array.isArray(user.tasks)) user.tasks = [];
+                    
+                    // Ensure each task has lastCompleted property
+                    user.tasks.forEach(task => {
+                        if (!task.lastCompleted) task.lastCompleted = null;
+                    });
                 });
             }
             
@@ -549,6 +561,56 @@
                     if (!Array.isArray(task.assignedUsers)) task.assignedUsers = [];
                 });
             }
+        }
+
+        // Check if tasks need to be reset based on their frequency
+        function checkForTaskResets() {
+            const now = new Date();
+            const lastResetDate = new Date(householdData.lastResetDate);
+            const needsReset = {
+                daily: false,
+                weekly: false,
+                monthly: false
+            };
+
+            // Check daily reset (if it's a new day)
+            if (now.getDate() !== lastResetDate.getDate() || 
+                now.getMonth() !== lastResetDate.getMonth() || 
+                now.getFullYear() !== lastResetDate.getFullYear()) {
+                needsReset.daily = true;
+            }
+
+            // Check weekly reset (if it's a new week and it's Sunday)
+            if (now.getDay() === 0 && (now.getDate() !== lastResetDate.getDate() || 
+                                       now.getMonth() !== lastResetDate.getMonth() || 
+                                       now.getFullYear() !== lastResetDate.getFullYear())) {
+                needsReset.weekly = true;
+            }
+
+            // Check monthly reset (if it's the 1st of the month)
+            if (now.getDate() === 1 && (now.getMonth() !== lastResetDate.getMonth() || 
+                                       now.getFullYear() !== lastResetDate.getFullYear())) {
+                needsReset.monthly = true;
+            }
+
+            // If any reset is needed, update the tasks
+            if (needsReset.daily || needsReset.weekly || needsReset.monthly) {
+                householdData.users.forEach(user => {
+                    user.tasks.forEach(task => {
+                        if ((task.frequency === 'daily' && needsReset.daily) ||
+                            (task.frequency === 'weekly' && needsReset.weekly) ||
+                            (task.frequency === 'monthly' && needsReset.monthly)) {
+                            task.completed = false;
+                            task.lastCompleted = null;
+                        }
+                    });
+                });
+
+                // Update last reset date
+                householdData.lastResetDate = now.toISOString();
+                return true;
+            }
+            return false;
         }
 
         // Save to Realtime Database
@@ -577,10 +639,18 @@
                     householdData = {
                         currentWeek: data.currentWeek || defaultData.currentWeek,
                         users: data.users || JSON.parse(JSON.stringify(defaultData.users)),
-                        allTasks: data.allTasks || []
+                        allTasks: data.allTasks || [],
+                        lastResetDate: data.lastResetDate || new Date().toISOString()
                     };
                     
                     verifyDataStructure();
+                    
+                    // Check for task resets when loading
+                    const resetPerformed = checkForTaskResets();
+                    if (resetPerformed) {
+                        saveToDatabase();
+                    }
+                    
                     saveDataLocally();
                     renderSharedView();
                     updateWeekDisplay();
@@ -603,6 +673,13 @@
                 const saved = localStorage.getItem('householdChoresData');
                 householdData = saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(defaultData));
                 verifyDataStructure();
+                
+                // Check for task resets when loading local data
+                const resetPerformed = checkForTaskResets();
+                if (resetPerformed) {
+                    saveDataLocally();
+                }
+                
                 renderSharedView();
             });
         }
@@ -661,7 +738,8 @@
                     id: task.id,
                     name: task.name,
                     frequency: task.frequency,
-                    completed: false
+                    completed: false,
+                    lastCompleted: null
                 });
             }
             
@@ -721,6 +799,7 @@
                     checkbox.checked = task.completed || false;
                     checkbox.addEventListener('change', async () => {
                         task.completed = checkbox.checked;
+                        task.lastCompleted = task.completed ? new Date().toISOString() : null;
                         await saveAndSync();
                         renderSharedView();
                         if (isAdmin) renderAdminDashboard();
@@ -851,7 +930,8 @@
                                 id: task.id,
                                 name: task.name,
                                 frequency: task.frequency,
-                                completed: false
+                                completed: false,
+                                lastCompleted: null
                             });
                         }
                     });
@@ -978,6 +1058,7 @@
             const data = {
                 timestamp: new Date().toISOString(),
                 week: householdData.currentWeek || 1,
+                lastResetDate: householdData.lastResetDate,
                 users: householdData.users?.map(user => {
                     const tasks = user.tasks || [];
                     return {
@@ -987,7 +1068,7 @@
                             name: task.name,
                             frequency: task.frequency,
                             completed: task.completed,
-                            lastUpdated: new Date().toISOString()
+                            lastCompleted: task.lastCompleted || "Never"
                         }))
                     };
                 }) || []
@@ -1122,6 +1203,16 @@
                 setupEventListeners();
                 setupTabs();
                 setupAdminFeatures();
+                
+                // Check for task resets periodically (every hour)
+                setInterval(() => {
+                    const resetPerformed = checkForTaskResets();
+                    if (resetPerformed) {
+                        saveAndSync();
+                        renderSharedView();
+                        if (isAdmin) renderAdminDashboard();
+                    }
+                }, 3600000); // 1 hour in milliseconds
                 
             } catch (error) {
                 console.error("App initialization failed:", error);
