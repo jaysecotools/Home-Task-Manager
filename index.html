@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1467,7 +1468,8 @@
         function setupAdminFeatures() {
             if (!adminToggle || !adminLoginBtn || !adminLogoutBtn) return;
             
-            adminToggle.addEventListener('click', () => {
+            adminToggle.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent event bubbling
                 adminLoginForm.classList.toggle('hidden');
             });
             
@@ -1499,6 +1501,13 @@
                 body.classList.add('non-admin');
                 renderAdminDashboard();
                 updateSyncStatus("Admin mode deactivated", "success");
+            });
+            
+            // Close admin login form when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!adminLoginForm.contains(e.target) && e.target !== adminToggle) {
+                    adminLoginForm.classList.add('hidden');
+                }
             });
             
             if (exportBtn) exportBtn.addEventListener('click', exportProgressData);
