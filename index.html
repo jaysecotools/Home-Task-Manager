@@ -383,8 +383,8 @@
         const ADMIN_PASSWORD = "household123"; // Change this to your preferred password
         let isAdmin = false;
 
-        // Initialize data
-        let householdData = {
+        // Initialize default data structure
+        const defaultData = {
             currentWeek: 1,
             users: [
                 { id: 1, name: "User 1", tasks: [] },
@@ -395,6 +395,9 @@
             ],
             allTasks: []
         };
+
+        // Current app data (will be loaded from Firebase)
+        let householdData = JSON.parse(JSON.stringify(defaultData));
 
         // DOM elements
         const sharedContainer = document.getElementById('shared-container');
@@ -439,7 +442,7 @@
             }
         }
 
-        // Load from Realtime Database
+        // Load from Realtime Database with improved error handling
         function loadFromDatabase() {
             try {
                 syncStatus.textContent = "Loading from cloud...";
@@ -457,6 +460,15 @@
                     } else {
                         // If no data exists, save our initial data
                         saveToDatabase();
+                    }
+                }, (error) => {
+                    console.error("Error loading data:", error);
+                    syncStatus.textContent = "Sync failed, using local data";
+                    // Fallback to local data
+                    const saved = localStorage.getItem('householdChoresData');
+                    if (saved) {
+                        householdData = JSON.parse(saved);
+                        renderSharedView();
                     }
                 });
             } catch (error) {
@@ -485,22 +497,30 @@
             loadFromDatabase();
         }
 
-        // Add a new task
+        // Add a new task with validation
         async function addNewTask(name, frequency) {
+            if (!name || !frequency) return;
+            
             const newTask = {
                 id: Date.now(),
-                name: name,
+                name: name.trim(),
                 frequency: frequency,
                 assignedUsers: []
             };
+            
+            if (!householdData.allTasks) {
+                householdData.allTasks = [];
+            }
             
             householdData.allTasks.push(newTask);
             await saveAndSync();
             populateDropdowns();
         }
 
-        // Assign task to user
+        // Assign task to user with validation
         async function assignTaskToUser(taskId, userId) {
+            if (!taskId || !userId) return;
+            
             const task = householdData.allTasks.find(t => t.id === taskId);
             const user = householdData.users.find(u => u.id === userId);
             
@@ -524,13 +544,19 @@
             if (isAdmin) renderAdminDashboard();
         }
 
-        // Render shared view of all users' tasks
+        // Render shared view of all users' tasks with null checks
         function renderSharedView() {
             sharedContainer.innerHTML = '';
             
+            if (!householdData?.users) {
+                console.error("Users data is missing!");
+                return;
+            }
+            
             householdData.users.forEach(user => {
-                const totalTasks = user.tasks.length;
-                const completedTasks = user.tasks.filter(t => t.completed).length;
+                const tasks = user.tasks || [];
+                const totalTasks = tasks.length;
+                const completedTasks = tasks.filter(t => t?.completed).length;
                 const completionRate = totalTasks > 0 
                     ? Math.round((completedTasks / totalTasks) * 100) 
                     : 0;
@@ -556,7 +582,7 @@
                 const taskList = document.createElement('ul');
                 taskList.className = 'task-list';
                 
-                user.tasks.forEach(task => {
+                tasks.forEach(task => {
                     const taskItem = document.createElement('li');
                     taskItem.className = 'task-item';
                     
@@ -590,8 +616,10 @@
             });
         }
 
-        // Update user name
+        // Update user name with validation
         async function updateUserName(userId, newName) {
+            if (!userId || !newName) return;
+            
             const user = householdData.users.find(u => u.id === userId);
             if (user && newName.trim()) {
                 user.name = newName.trim();
@@ -604,10 +632,10 @@
 
         // Update week display
         function updateWeekDisplay() {
-            currentWeekSpan.textContent = householdData.currentWeek;
+            currentWeekSpan.textContent = householdData.currentWeek || 1;
         }
 
-        // Remove a task
+        // Remove a task with validation
         async function removeTask() {
             const taskId = parseInt(taskToRemove.value);
             if (!taskId) return;
@@ -624,8 +652,10 @@
             if (isAdmin) renderAdminDashboard();
         }
 
-        // Unassign task from user
+        // Unassign task from user with validation
         async function unassignTaskFromUser(taskId, userId) {
+            if (!taskId || !userId) return;
+            
             const task = householdData.allTasks.find(t => t.id === taskId);
             const user = householdData.users.find(u => u.id === userId);
             
@@ -639,12 +669,16 @@
             if (isAdmin) renderAdminDashboard();
         }
 
-        // Rotate tasks to next week
+        // Rotate tasks to next week with validation
         async function rotateTasks() {
-            householdData.currentWeek++;
+            if (!householdData.currentWeek) {
+                householdData.currentWeek = 1;
+            } else {
+                householdData.currentWeek++;
+            }
             
             householdData.allTasks.forEach(task => {
-                if (task.assignedUsers.length > 0) {
+                if (task.assignedUsers?.length > 0) {
                     householdData.users.forEach(user => {
                         user.tasks = user.tasks.filter(t => t.id !== task.id);
                     });
@@ -672,14 +706,16 @@
             if (isAdmin) renderAdminDashboard();
         }
 
-        // Populate all dropdowns
+        // Populate all dropdowns with validation
         function populateDropdowns() {
+            if (!taskToRemove || !assignTaskSelect || !userToRename || !assignUserSelect) return;
+            
             taskToRemove.innerHTML = '<option value="">Select a task</option>';
             assignTaskSelect.innerHTML = '<option value="">Select a task</option>';
             userToRename.innerHTML = '<option value="">Select a user</option>';
             assignUserSelect.innerHTML = '<option value="">Select a user</option>';
             
-            householdData.allTasks.forEach(task => {
+            householdData.allTasks?.forEach(task => {
                 const option1 = document.createElement('option');
                 option1.value = task.id;
                 option1.textContent = task.name;
@@ -691,7 +727,7 @@
                 assignTaskSelect.appendChild(option2);
             });
             
-            householdData.users.forEach(user => {
+            householdData.users?.forEach(user => {
                 const option1 = document.createElement('option');
                 option1.value = user.id;
                 option1.textContent = user.name;
@@ -722,8 +758,10 @@
             });
         }
 
-        // Admin features
+        // Admin features with validation
         function setupAdminFeatures() {
+            if (!adminToggle || !adminLoginBtn) return;
+            
             adminToggle.addEventListener('click', () => {
                 adminLoginForm.classList.toggle('hidden');
             });
@@ -740,10 +778,14 @@
                 }
             });
             
-            exportBtn.addEventListener('click', exportProgressData);
+            if (exportBtn) {
+                exportBtn.addEventListener('click', exportProgressData);
+            }
         }
 
         function renderAdminDashboard() {
+            if (!adminDashboard || !adminMessage) return;
+            
             if (!isAdmin) {
                 adminDashboard.style.display = "none";
                 adminMessage.style.display = "block";
@@ -752,11 +794,14 @@
             
             adminDashboard.style.display = "block";
             adminMessage.style.display = "none";
+            if (!progressGrid) return;
+            
             progressGrid.innerHTML = '';
             
-            householdData.users.forEach(user => {
-                const totalTasks = user.tasks.length;
-                const completedTasks = user.tasks.filter(t => t.completed).length;
+            householdData.users?.forEach(user => {
+                const tasks = user.tasks || [];
+                const totalTasks = tasks.length;
+                const completedTasks = tasks.filter(t => t?.completed).length;
                 const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
                 
                 const frequencyStats = {
@@ -765,9 +810,11 @@
                     monthly: { total: 0, completed: 0 }
                 };
                 
-                user.tasks.forEach(task => {
-                    frequencyStats[task.frequency].total++;
-                    if (task.completed) frequencyStats[task.frequency].completed++;
+                tasks.forEach(task => {
+                    if (task.frequency && frequencyStats[task.frequency]) {
+                        frequencyStats[task.frequency].total++;
+                        if (task.completed) frequencyStats[task.frequency].completed++;
+                    }
                 });
                 
                 const card = document.createElement('div');
@@ -795,105 +842,121 @@
             
             const data = {
                 timestamp: new Date().toISOString(),
-                week: householdData.currentWeek,
-                users: householdData.users.map(user => {
-                    const tasks = user.tasks.map(task => ({
-                        name: task.name,
-                        frequency: task.frequency,
-                        completed: task.completed,
-                        lastUpdated: new Date().toISOString()
-                    }));
-                    
+                week: householdData.currentWeek || 1,
+                users: householdData.users?.map(user => {
+                    const tasks = user.tasks || [];
                     return {
                         name: user.name,
-                        completionRate: Math.round((user.tasks.filter(t => t.completed).length / user.tasks.length) * 100) || 0,
-                        tasks: tasks
+                        completionRate: Math.round((tasks.filter(t => t?.completed).length / tasks.length) * 100) || 0,
+                        tasks: tasks.map(task => ({
+                            name: task.name,
+                            frequency: task.frequency,
+                            completed: task.completed,
+                            lastUpdated: new Date().toISOString()
+                        }))
                     };
-                })
+                }) || []
             };
             
             const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `household-progress-week-${householdData.currentWeek}.json`;
+            a.download = `household-progress-week-${householdData.currentWeek || 1}.json`;
             a.click();
             URL.revokeObjectURL(url);
         }
 
-        // Set up event listeners
+        // Set up event listeners with validation
         function setupEventListeners() {
-            addTaskBtn.addEventListener('click', async () => {
-                const name = newTaskName.value.trim();
-                const frequency = newTaskFrequency.value;
-                
-                if (name) {
-                    await addNewTask(name, frequency);
-                    newTaskName.value = '';
-                }
-            });
+            if (addTaskBtn) {
+                addTaskBtn.addEventListener('click', async () => {
+                    const name = newTaskName?.value?.trim();
+                    const frequency = newTaskFrequency?.value;
+                    
+                    if (name && frequency) {
+                        await addNewTask(name, frequency);
+                        if (newTaskName) newTaskName.value = '';
+                    }
+                });
+            }
             
-            removeTaskBtn.addEventListener('click', async () => {
-                await removeTask();
-            });
+            if (removeTaskBtn) {
+                removeTaskBtn.addEventListener('click', async () => {
+                    await removeTask();
+                });
+            }
             
-            assignTaskBtn.addEventListener('click', async () => {
-                const taskId = parseInt(assignTaskSelect.value);
-                const userId = parseInt(assignUserSelect.value);
-                
-                if (taskId && userId) {
-                    await assignTaskToUser(taskId, userId);
-                }
-            });
+            if (assignTaskBtn) {
+                assignTaskBtn.addEventListener('click', async () => {
+                    const taskId = parseInt(assignTaskSelect?.value);
+                    const userId = parseInt(assignUserSelect?.value);
+                    
+                    if (taskId && userId) {
+                        await assignTaskToUser(taskId, userId);
+                    }
+                });
+            }
             
-            unassignTaskBtn.addEventListener('click', async () => {
-                const taskId = parseInt(assignTaskSelect.value);
-                const userId = parseInt(assignUserSelect.value);
-                
-                if (taskId && userId) {
-                    await unassignTaskFromUser(taskId, userId);
-                }
-            });
+            if (unassignTaskBtn) {
+                unassignTaskBtn.addEventListener('click', async () => {
+                    const taskId = parseInt(assignTaskSelect?.value);
+                    const userId = parseInt(assignUserSelect?.value);
+                    
+                    if (taskId && userId) {
+                        await unassignTaskFromUser(taskId, userId);
+                    }
+                });
+            }
             
-            renameUserBtn.addEventListener('click', async () => {
-                const userId = parseInt(userToRename.value);
-                const newName = newUserName.value.trim();
-                
-                if (userId && newName) {
-                    await updateUserName(userId, newName);
-                    newUserName.value = '';
-                }
-            });
+            if (renameUserBtn) {
+                renameUserBtn.addEventListener('click', async () => {
+                    const userId = parseInt(userToRename?.value);
+                    const newName = newUserName?.value?.trim();
+                    
+                    if (userId && newName) {
+                        await updateUserName(userId, newName);
+                        if (newUserName) newUserName.value = '';
+                    }
+                });
+            }
             
-            rotateBtn.addEventListener('click', async () => {
-                await rotateTasks();
-            });
+            if (rotateBtn) {
+                rotateBtn.addEventListener('click', async () => {
+                    await rotateTasks();
+                });
+            }
         }
 
-        // Initialize the app
+        // Initialize the app with error handling
         function initApp() {
-            loadData();
-            renderSharedView();
-            updateWeekDisplay();
-            populateDropdowns();
-            setupEventListeners();
-            setupTabs();
-            setupAdminFeatures();
-            
-            // Add sample data if no tasks exist
-            if (householdData.allTasks.length === 0) {
-                addNewTask("Wash dishes", "daily");
-                addNewTask("Vacuum living room", "weekly");
-                addNewTask("Clean bathroom", "weekly");
-                addNewTask("Take out trash", "daily");
-                addNewTask("Mow lawn", "monthly");
+            try {
+                loadData();
+                renderSharedView();
+                updateWeekDisplay();
+                populateDropdowns();
+                setupEventListeners();
+                setupTabs();
+                setupAdminFeatures();
                 
-                // Assign some initial tasks
-                assignTaskToUser(1, 1);
-                assignTaskToUser(2, 2);
-                assignTaskToUser(3, 3);
-                assignTaskToUser(4, 4);
-                assignTaskToUser(5, 5);
+                // Add sample data if empty
+                if (householdData.allTasks?.length === 0) {
+                    addNewTask("Wash dishes", "daily");
+                    addNewTask("Vacuum living room", "weekly");
+                    addNewTask("Clean bathroom", "weekly");
+                    addNewTask("Take out trash", "daily");
+                    addNewTask("Mow lawn", "monthly");
+                    
+                    // Assign some initial tasks
+                    assignTaskToUser(1, 1);
+                    assignTaskToUser(2, 2);
+                    assignTaskToUser(3, 3);
+                    assignTaskToUser(4, 4);
+                    assignTaskToUser(5, 5);
+                }
+            } catch (error) {
+                console.error("App initialization failed:", error);
+                if (syncStatus) syncStatus.textContent = "Initialization error - check console";
             }
         }
 
