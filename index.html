@@ -282,6 +282,22 @@
         .reset-btn:hover {
             background: #c0392b;
         }
+        .admin-only {
+            display: none;
+        }
+        .admin-mode .admin-only {
+            display: block;
+        }
+        .admin-mode .rotate-btn {
+            display: block;
+        }
+        .admin-mode .admin-panel {
+            display: block;
+        }
+        .non-admin .rotate-btn,
+        .non-admin .admin-panel {
+            display: none;
+        }
 
         /* Responsive adjustments */
         @media (min-width: 600px) {
@@ -311,13 +327,14 @@
         }
     </style>
 </head>
-<body>
+<body class="non-admin">
     <!-- Admin Login Toggle -->
     <div class="admin-login">
-        <button id="admin-toggle">Admin Mode</button>
+        <button id="admin-toggle">Admin Login</button>
         <div id="admin-login-form" class="hidden">
             <input type="password" id="admin-password" placeholder="Enter admin password">
             <button id="admin-login-btn">Login</button>
+            <button id="admin-logout-btn" class="hidden">Logout</button>
         </div>
     </div>
 
@@ -333,9 +350,9 @@
         <!-- All users' tasks will be displayed here together -->
     </div>
     
-    <button class="rotate-btn" id="rotate-tasks">Rotate Tasks for Next Week</button>
+    <button class="rotate-btn admin-only" id="rotate-tasks">Rotate Tasks for Next Week</button>
     
-    <div class="admin-panel">
+    <div class="admin-panel admin-only">
         <div class="tabs">
             <div class="tab active" data-tab="add-task">Add Task</div>
             <div class="tab" data-tab="assign-task">Assign Task</div>
@@ -419,7 +436,7 @@
                 <button class="reset-btn" id="reset-data-btn">Reset All Data</button>
             </div>
             <div id="admin-message">
-                <p>Please enable admin mode to view progress tracking.</p>
+                <p>Please login as admin to view progress tracking.</p>
             </div>
         </div>
     </div>
@@ -491,10 +508,12 @@
         const adminLoginForm = document.getElementById('admin-login-form');
         const adminPassword = document.getElementById('admin-password');
         const adminLoginBtn = document.getElementById('admin-login-btn');
+        const adminLogoutBtn = document.getElementById('admin-logout-btn');
         const adminDashboard = document.getElementById('admin-dashboard');
         const adminMessage = document.getElementById('admin-message');
         const progressGrid = document.getElementById('progress-grid');
         const exportBtn = document.getElementById('export-data');
+        const body = document.body;
 
         // Verify and repair data structure
         function verifyDataStructure() {
@@ -985,7 +1004,7 @@
 
         // Admin features setup
         function setupAdminFeatures() {
-            if (!adminToggle || !adminLoginBtn) return;
+            if (!adminToggle || !adminLoginBtn || !adminLogoutBtn) return;
             
             adminToggle.addEventListener('click', () => {
                 adminLoginForm.classList.toggle('hidden');
@@ -997,10 +1016,26 @@
                     adminLoginForm.classList.add('hidden');
                     adminToggle.textContent = "Admin Mode (ON)";
                     adminToggle.style.background = "#27ae60";
+                    adminLogoutBtn.classList.remove('hidden');
+                    adminLoginBtn.classList.add('hidden');
+                    body.classList.remove('non-admin');
+                    body.classList.add('admin-mode');
                     renderAdminDashboard();
                 } else {
                     alert("Incorrect password");
                 }
+            });
+            
+            adminLogoutBtn.addEventListener('click', () => {
+                isAdmin = false;
+                adminToggle.textContent = "Admin Login";
+                adminToggle.style.background = "";
+                adminLogoutBtn.classList.add('hidden');
+                adminLoginBtn.classList.remove('hidden');
+                adminPassword.value = "";
+                body.classList.remove('admin-mode');
+                body.classList.add('non-admin');
+                renderAdminDashboard();
             });
             
             if (exportBtn) exportBtn.addEventListener('click', exportProgressData);
