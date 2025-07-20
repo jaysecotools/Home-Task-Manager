@@ -2,32 +2,40 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Household Chores Manager</title>
     <style>
+        * {
+            box-sizing: border-box;
+        }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            max-width: 1000px;
+            max-width: 100%;
             margin: 0 auto;
-            padding: 20px;
+            padding: 15px;
             background-color: #f5f5f5;
+            -webkit-text-size-adjust: 100%;
         }
         h1 {
             color: #2c3e50;
             text-align: center;
-            margin-top: 40px;
+            margin-top: 20px;
+            font-size: 1.5em;
+        }
+        h2 {
+            font-size: 1.3em;
         }
         .shared-view {
             background: white;
             border-radius: 8px;
-            padding: 20px;
+            padding: 15px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
         .user-group {
-            margin-bottom: 25px;
+            margin-bottom: 20px;
             border-bottom: 2px solid #eee;
-            padding-bottom: 15px;
+            padding-bottom: 10px;
         }
         .user-group:last-child {
             border-bottom: none;
@@ -35,16 +43,17 @@
         .user-header {
             display: flex;
             align-items: center;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
         }
         .user-name {
             font-weight: bold;
-            font-size: 1.3em;
+            font-size: 1.1em;
             color: #3498db;
-            margin-right: 15px;
+            margin-right: 10px;
         }
         .completion-rate {
-            font-size: 0.9em;
+            font-size: 0.8em;
             color: #7f8c8d;
         }
         .task-list {
@@ -55,28 +64,34 @@
         .task-item {
             display: flex;
             align-items: center;
-            padding: 10px;
+            padding: 8px;
             border-radius: 4px;
             margin-bottom: 5px;
             background-color: #f9f9f9;
+            flex-wrap: wrap;
         }
         .task-item:hover {
             background-color: #f0f0f0;
         }
         .task-checkbox {
-            margin-right: 15px;
+            margin-right: 10px;
             transform: scale(1.2);
+            flex-shrink: 0;
         }
         .task-name {
             flex-grow: 1;
+            min-width: 60%;
+            word-break: break-word;
+            padding: 5px 0;
         }
         .task-frequency {
-            font-size: 0.8em;
+            font-size: 0.7em;
             color: white;
             background-color: #7f8c8d;
-            padding: 3px 8px;
+            padding: 3px 6px;
             border-radius: 10px;
-            margin-left: 10px;
+            margin-left: 5px;
+            flex-shrink: 0;
         }
         .completed {
             text-decoration: line-through;
@@ -84,14 +99,15 @@
         }
         .week-indicator {
             text-align: center;
-            margin: 20px 0;
-            font-size: 1.2em;
+            margin: 15px 0;
+            font-size: 1em;
             color: #7f8c8d;
         }
         .rotate-btn {
             background-color: #27ae60;
-            max-width: 200px;
-            margin: 20px auto;
+            width: 100%;
+            max-width: 300px;
+            margin: 15px auto;
             display: block;
             padding: 10px;
             border: none;
@@ -99,6 +115,7 @@
             color: white;
             font-weight: bold;
             cursor: pointer;
+            font-size: 0.9em;
         }
         .rotate-btn:hover {
             background-color: #219653;
@@ -106,17 +123,18 @@
         .admin-panel {
             background: white;
             border-radius: 8px;
-            padding: 20px;
-            margin-top: 20px;
+            padding: 15px;
+            margin-top: 15px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
         .form-group {
-            margin-bottom: 15px;
+            margin-bottom: 12px;
         }
         label {
             display: block;
             margin-bottom: 5px;
             font-weight: bold;
+            font-size: 0.9em;
         }
         input, select, button {
             padding: 8px;
@@ -124,6 +142,7 @@
             border-radius: 4px;
             width: 100%;
             box-sizing: border-box;
+            font-size: 0.9em;
         }
         button {
             background-color: #3498db;
@@ -131,30 +150,35 @@
             border: none;
             cursor: pointer;
             font-weight: bold;
-            margin-top: 10px;
+            margin-top: 8px;
         }
         button:hover {
             background-color: #2980b9;
         }
         .assign-controls {
             display: flex;
-            gap: 10px;
+            gap: 8px;
         }
         .assign-controls select {
             flex: 1;
         }
+        .assign-controls button {
+            margin-top: 0;
+        }
         .tabs {
             display: flex;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             flex-wrap: wrap;
+            gap: 5px;
         }
         .tab {
-            padding: 10px 20px;
+            padding: 8px 12px;
             background: #ddd;
             cursor: pointer;
-            border-radius: 5px 5px 0 0;
-            margin-right: 5px;
-            margin-bottom: 5px;
+            border-radius: 5px;
+            font-size: 0.8em;
+            flex-grow: 1;
+            text-align: center;
         }
         .tab.active {
             background: white;
@@ -181,28 +205,28 @@
             display: none;
             background: #2c3e50;
             color: white;
-            padding: 20px;
+            padding: 15px;
             border-radius: 8px;
-            margin-top: 20px;
+            margin-top: 15px;
         }
         .progress-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 15px;
-            margin-top: 20px;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            margin-top: 15px;
         }
         .progress-card {
             background: white;
             color: #2c3e50;
-            padding: 15px;
+            padding: 12px;
             border-radius: 8px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
         .progress-bar {
-            height: 20px;
+            height: 15px;
             background: #ecf0f1;
             border-radius: 10px;
-            margin: 10px 0;
+            margin: 8px 0;
             overflow: hidden;
         }
         .progress-fill {
@@ -212,7 +236,7 @@
         }
         .export-btn {
             background: #e67e22;
-            margin-top: 20px;
+            margin-top: 15px;
         }
         .export-btn:hover {
             background: #d35400;
@@ -221,17 +245,23 @@
             display: none;
         }
         .frequency-stats {
-            margin-top: 10px;
+            margin-top: 8px;
         }
         .frequency-stats p {
-            margin: 5px 0;
-            font-size: 0.9em;
+            margin: 4px 0;
+            font-size: 0.8em;
         }
         #admin-login-form {
-            margin-top: 10px;
+            margin-top: 8px;
         }
         #admin-login-form input {
             margin-bottom: 5px;
+            font-size: 0.8em;
+            padding: 6px;
+        }
+        #admin-login-form button {
+            padding: 6px;
+            font-size: 0.8em;
         }
         .sync-status {
             position: fixed;
@@ -241,14 +271,43 @@
             color: white;
             padding: 5px 10px;
             border-radius: 4px;
-            font-size: 0.8em;
+            font-size: 0.7em;
+            max-width: 80%;
+            word-break: break-word;
         }
         .reset-btn {
             background: #e74c3c;
-            margin-top: 10px;
+            margin-top: 8px;
         }
         .reset-btn:hover {
             background: #c0392b;
+        }
+
+        /* Responsive adjustments */
+        @media (min-width: 600px) {
+            body {
+                padding: 20px;
+            }
+            h1 {
+                font-size: 1.8em;
+                margin-top: 30px;
+            }
+            .shared-view {
+                padding: 20px;
+            }
+            .user-name {
+                font-size: 1.2em;
+            }
+            .task-item {
+                flex-wrap: nowrap;
+            }
+            .progress-grid {
+                grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            }
+            .tab {
+                font-size: 0.9em;
+                flex-grow: 0;
+            }
         }
     </style>
 </head>
@@ -282,7 +341,7 @@
             <div class="tab" data-tab="assign-task">Assign Task</div>
             <div class="tab" data-tab="manage-tasks">Manage Tasks</div>
             <div class="tab" data-tab="manage-users">Manage Users</div>
-            <div class="tab" data-tab="progress-tracker">Progress Tracker</div>
+            <div class="tab" data-tab="progress-tracker">Progress</div>
         </div>
         
         <div class="tab-content active" id="add-task">
