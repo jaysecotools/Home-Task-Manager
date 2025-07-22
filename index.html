@@ -548,6 +548,9 @@
         .avatar-3 { background-color: #249131 !important; }
         .avatar-4 { background-color: #2d5b96 !important; }
         .avatar-5 { background-color: #9048ef !important; }
+        .avatar-6 { background-color: #ef4848 !important; }
+        .avatar-7 { background-color: #48efc8 !important; }
+        .avatar-8 { background-color: #ef8f48 !important; }
 
         /* Responsive adjustments */
         @media (min-width: 768px) {
@@ -576,9 +579,68 @@
             font-style: normal;
             margin-right: 0.5rem;
         }
+
+        /* Multi-select styles */
+        .multi-select-container {
+            margin-bottom: 1rem;
+        }
+
+        .multi-select-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .multi-select {
+            width: 100%;
+            border: 1px solid var(--light-gray);
+            border-radius: var(--radius-sm);
+            padding: 0.5rem;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .multi-select-option {
+            padding: 0.5rem;
+            cursor: pointer;
+            border-radius: var(--radius-sm);
+            margin-bottom: 0.25rem;
+        }
+
+        .multi-select-option:hover {
+            background-color: var(--light-gray);
+        }
+
+        .multi-select-option.selected {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        /* Confetti canvas */
+        #confetti-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 9999;
+            pointer-events: none;
+        }
+
+        /* Add/remove user buttons */
+        .user-management-buttons {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        .user-management-buttons .btn {
+            flex: 1;
+        }
     </style>
 </head>
 <body class="non-admin">
+    <canvas id="confetti-canvas"></canvas>
     <div class="container">
         <!-- Admin Login Toggle -->
         <div class="admin-login">
@@ -635,22 +697,22 @@
             </div>
             
             <div class="tab-content" id="assign-task">
-                <h3>Assign Task to User</h3>
-                <div class="form-group">
-                    <label for="assign-task-select" class="form-label">Select Task:</label>
-                    <select class="form-control" id="assign-task-select">
+                <h3>Assign Tasks to Users</h3>
+                <div class="multi-select-container">
+                    <label class="multi-select-label">Select Tasks:</label>
+                    <div class="multi-select" id="assign-task-multi-select">
                         <!-- Tasks will be populated here -->
-                    </select>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="assign-user-select" class="form-label">Assign to User:</label>
-                    <select class="form-control" id="assign-user-select">
+                <div class="multi-select-container">
+                    <label class="multi-select-label">Select Users:</label>
+                    <div class="multi-select" id="assign-user-multi-select">
                         <!-- Users will be populated here -->
-                    </select>
+                    </div>
                 </div>
                 <div class="assign-controls">
-                    <button class="btn btn-primary" id="assign-task-btn">Assign Task</button>
-                    <button class="btn btn-danger" id="unassign-task-btn">Unassign Task</button>
+                    <button class="btn btn-primary" id="assign-task-btn">Assign Tasks</button>
+                    <button class="btn btn-danger" id="unassign-task-btn">Unassign Tasks</button>
                 </div>
             </div>
             
@@ -677,7 +739,15 @@
                     <label for="new-user-name" class="form-label">New Name:</label>
                     <input type="text" class="form-control" id="new-user-name" placeholder="Enter new name">
                 </div>
-                <button class="btn btn-primary btn-block" id="rename-user-btn">Rename User</button>
+                <div class="form-group">
+                    <label for="add-user-name" class="form-label">Add New User:</label>
+                    <input type="text" class="form-control" id="add-user-name" placeholder="Enter new user name">
+                </div>
+                <div class="user-management-buttons">
+                    <button class="btn btn-primary" id="rename-user-btn">Rename User</button>
+                    <button class="btn btn-success" id="add-user-btn">Add User</button>
+                    <button class="btn btn-danger" id="remove-user-btn">Remove User</button>
+                </div>
                 <button class="btn btn-warning btn-block" id="reset-users-btn">Reset User Names</button>
             </div>
             
@@ -750,15 +820,18 @@
         const assignTaskBtn = document.getElementById('assign-task-btn');
         const unassignTaskBtn = document.getElementById('unassign-task-btn');
         const renameUserBtn = document.getElementById('rename-user-btn');
+        const addUserBtn = document.getElementById('add-user-btn');
+        const removeUserBtn = document.getElementById('remove-user-btn');
         const resetUsersBtn = document.getElementById('reset-users-btn');
         const resetDataBtn = document.getElementById('reset-data-btn');
         const newTaskName = document.getElementById('new-task-name');
         const newTaskFrequency = document.getElementById('new-task-frequency');
         const taskToRemove = document.getElementById('task-to-remove');
-        const assignTaskSelect = document.getElementById('assign-task-select');
-        const assignUserSelect = document.getElementById('assign-user-select');
+        const assignTaskMultiSelect = document.getElementById('assign-task-multi-select');
+        const assignUserMultiSelect = document.getElementById('assign-user-multi-select');
         const userToRename = document.getElementById('user-to-rename');
         const newUserName = document.getElementById('new-user-name');
+        const addUserName = document.getElementById('add-user-name');
         const tabs = document.querySelectorAll('.tab');
         const tabContents = document.querySelectorAll('.tab-content');
         const syncStatus = document.getElementById('sync-status');
@@ -772,6 +845,7 @@
         const progressGrid = document.getElementById('progress-grid');
         const exportBtn = document.getElementById('export-data');
         const body = document.body;
+        const confettiCanvas = document.getElementById('confetti-canvas');
 
         // Verify and repair data structure
         function verifyDataStructure() {
@@ -985,34 +1059,91 @@
             newTaskName.focus();
         }
 
-        // Assign task to user with validation
-        async function assignTaskToUser(taskId, userId) {
-            if (!taskId || !userId) return;
-            
-            const task = householdData.allTasks.find(t => t.id === taskId);
-            const user = householdData.users.find(u => u.id === userId);
-            
-            if (!task || !user) return;
-            
-            // Initialize arrays if they don't exist
-            if (!task.assignedUsers) task.assignedUsers = [];
-            if (!user.tasks) user.tasks = [];
-            
-            if (!task.assignedUsers.includes(userId)) {
-                task.assignedUsers.push(userId);
+        // Assign tasks to users with validation
+        async function assignTasksToUsers(taskIds, userIds) {
+            if (!taskIds || !userIds || taskIds.length === 0 || userIds.length === 0) {
+                alert("Please select at least one task and one user");
+                return;
             }
             
-            if (!user.tasks.some(t => t.id === taskId)) {
-                user.tasks.push({
-                    id: task.id,
-                    name: task.name,
-                    frequency: task.frequency,
-                    completed: false,
-                    lastCompleted: null
+            taskIds.forEach(taskId => {
+                const task = householdData.allTasks.find(t => t.id === taskId);
+                if (!task) return;
+                
+                userIds.forEach(userId => {
+                    const user = householdData.users.find(u => u.id === userId);
+                    if (!user) return;
+                    
+                    // Initialize arrays if they don't exist
+                    if (!task.assignedUsers) task.assignedUsers = [];
+                    if (!user.tasks) user.tasks = [];
+                    
+                    if (!task.assignedUsers.includes(userId)) {
+                        task.assignedUsers.push(userId);
+                    }
+                    
+                    if (!user.tasks.some(t => t.id === taskId)) {
+                        user.tasks.push({
+                            id: task.id,
+                            name: task.name,
+                            frequency: task.frequency,
+                            completed: false,
+                            lastCompleted: null
+                        });
+                    }
                 });
-            }
+            });
             
             await saveAndSync();
+            renderSharedView();
+            if (isAdmin) renderAdminDashboard();
+        }
+
+        // Add a new user
+        async function addNewUser(name) {
+            if (!name || !name.trim()) {
+                alert("Please enter a name for the new user");
+                return;
+            }
+            
+            // Find the next available ID
+            const maxId = householdData.users.reduce((max, user) => Math.max(max, user.id), 0);
+            const newId = maxId + 1;
+            
+            const newUser = {
+                id: newId,
+                name: name.trim(),
+                tasks: []
+            };
+            
+            householdData.users.push(newUser);
+            await saveAndSync();
+            populateDropdowns();
+            addUserName.value = '';
+            renderSharedView();
+            if (isAdmin) renderAdminDashboard();
+        }
+
+        // Remove a user
+        async function removeUser(userId) {
+            if (!userId) return;
+            
+            if (!confirm("Are you sure you want to remove this user? All their tasks will be unassigned.")) {
+                return;
+            }
+            
+            // Remove user from users array
+            householdData.users = householdData.users.filter(user => user.id !== userId);
+            
+            // Remove user from all task assignments
+            householdData.allTasks.forEach(task => {
+                if (task.assignedUsers) {
+                    task.assignedUsers = task.assignedUsers.filter(id => id !== userId);
+                }
+            });
+            
+            await saveAndSync();
+            populateDropdowns();
             renderSharedView();
             if (isAdmin) renderAdminDashboard();
         }
@@ -1037,6 +1168,14 @@
                     ? Math.round((completedTasks / totalTasks) * 100) 
                     : 0;
                 
+                // Check if all daily tasks are completed for confetti
+                const dailyTasks = tasks.filter(t => t.frequency === 'daily');
+                const completedDailyTasks = dailyTasks.filter(t => t.completed).length;
+                
+                if (dailyTasks.length > 0 && completedDailyTasks === dailyTasks.length) {
+                    triggerConfetti();
+                }
+                
                 const userGroup = document.createElement('div');
                 userGroup.className = 'user-group';
                 
@@ -1047,7 +1186,7 @@
                 userName.className = 'user-name';
                 
                 const avatar = document.createElement('div');
-                avatar.className = `avatar avatar-${index + 1}`;
+                avatar.className = `avatar avatar-${(index % 8) + 1}`; // Cycle through 8 avatar colors
                 avatar.textContent = user.name.charAt(0).toUpperCase();
                 
                 userName.appendChild(avatar);
@@ -1104,6 +1243,75 @@
                 userGroup.appendChild(taskList);
                 sharedContainer.appendChild(userGroup);
             });
+        }
+
+        // Trigger confetti animation
+        function triggerConfetti() {
+            confettiCanvas.style.display = 'block';
+            
+            // Set canvas size
+            confettiCanvas.width = window.innerWidth;
+            confettiCanvas.height = window.innerHeight;
+            
+            const ctx = confettiCanvas.getContext('2d');
+            const particles = [];
+            const particleCount = 150;
+            
+            // Create particles
+            for (let i = 0; i < particleCount; i++) {
+                particles.push({
+                    x: Math.random() * confettiCanvas.width,
+                    y: Math.random() * confettiCanvas.height - confettiCanvas.height,
+                    size: Math.random() * 10 + 5,
+                    color: `hsl(${Math.random() * 360}, 100%, 50%)`,
+                    speed: Math.random() * 3 + 2,
+                    angle: Math.random() * Math.PI * 2,
+                    rotation: Math.random() * 0.2 - 0.1,
+                    rotationSpeed: Math.random() * 0.01 - 0.005
+                });
+            }
+            
+            let animationId;
+            let startTime = Date.now();
+            
+            function animate() {
+                ctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+                
+                const currentTime = Date.now();
+                const elapsed = (currentTime - startTime) / 1000; // in seconds
+                
+                if (elapsed > 5) { // Stop after 5 seconds
+                    cancelAnimationFrame(animationId);
+                    confettiCanvas.style.display = 'none';
+                    return;
+                }
+                
+                particles.forEach(particle => {
+                    ctx.save();
+                    ctx.translate(particle.x, particle.y);
+                    ctx.rotate(particle.angle);
+                    
+                    // Draw a rectangle (confetti piece)
+                    ctx.fillStyle = particle.color;
+                    ctx.fillRect(-particle.size / 2, -particle.size / 2, particle.size, particle.size);
+                    
+                    ctx.restore();
+                    
+                    // Update position
+                    particle.y += particle.speed;
+                    particle.angle += particle.rotationSpeed;
+                    
+                    // Reset particles that fall off screen
+                    if (particle.y > confettiCanvas.height) {
+                        particle.y = -particle.size;
+                        particle.x = Math.random() * confettiCanvas.width;
+                    }
+                });
+                
+                animationId = requestAnimationFrame(animate);
+            }
+            
+            animate();
         }
 
         // Get badge class based on completion rate
@@ -1188,17 +1396,28 @@
             if (isAdmin) renderAdminDashboard();
         }
 
-        // Unassign task from user with validation
-        async function unassignTaskFromUser(taskId, userId) {
-            if (!taskId || !userId) return;
+        // Unassign tasks from users with validation
+        async function unassignTasksFromUsers(taskIds, userIds) {
+            if (!taskIds || !userIds || taskIds.length === 0 || userIds.length === 0) {
+                alert("Please select at least one task and one user");
+                return;
+            }
             
-            const task = householdData.allTasks.find(t => t.id === taskId);
-            const user = householdData.users.find(u => u.id === userId);
-            
-            if (!task || !user) return;
-            
-            task.assignedUsers = task.assignedUsers.filter(id => id !== userId);
-            user.tasks = user.tasks.filter(t => t.id !== taskId);
+            taskIds.forEach(taskId => {
+                const task = householdData.allTasks.find(t => t.id === taskId);
+                if (!task) return;
+                
+                userIds.forEach(userId => {
+                    const user = householdData.users.find(u => u.id === userId);
+                    if (!user) return;
+                    
+                    if (task.assignedUsers) {
+                        task.assignedUsers = task.assignedUsers.filter(id => id !== userId);
+                    }
+                    
+                    user.tasks = user.tasks.filter(t => t.id !== taskId);
+                });
+            });
             
             await saveAndSync();
             renderSharedView();
@@ -1248,38 +1467,71 @@
             if (isAdmin) renderAdminDashboard();
         }
 
+        // Get selected items from multi-select
+        function getSelectedItems(containerId) {
+            const container = document.getElementById(containerId);
+            if (!container) return [];
+            
+            const selectedItems = [];
+            container.querySelectorAll('.multi-select-option.selected').forEach(option => {
+                selectedItems.push(parseInt(option.dataset.id));
+            });
+            
+            return selectedItems;
+        }
+
         // Populate all dropdowns with validation
         function populateDropdowns() {
-            if (!taskToRemove || !assignTaskSelect || !userToRename || !assignUserSelect) return;
+            // Single select dropdowns
+            if (taskToRemove) {
+                taskToRemove.innerHTML = '<option value="">Select a task</option>';
+                householdData.allTasks?.forEach(task => {
+                    const option = document.createElement('option');
+                    option.value = task.id;
+                    option.textContent = task.name;
+                    taskToRemove.appendChild(option);
+                });
+            }
             
-            taskToRemove.innerHTML = '<option value="">Select a task</option>';
-            assignTaskSelect.innerHTML = '<option value="">Select a task</option>';
-            userToRename.innerHTML = '<option value="">Select a user</option>';
-            assignUserSelect.innerHTML = '<option value="">Select a user</option>';
+            if (userToRename) {
+                userToRename.innerHTML = '<option value="">Select a user</option>';
+                householdData.users?.forEach(user => {
+                    const option = document.createElement('option');
+                    option.value = user.id;
+                    option.textContent = user.name;
+                    userToRename.appendChild(option);
+                });
+            }
             
-            householdData.allTasks?.forEach(task => {
-                const option1 = document.createElement('option');
-                option1.value = task.id;
-                option1.textContent = task.name;
-                taskToRemove.appendChild(option1);
-                
-                const option2 = document.createElement('option');
-                option2.value = task.id;
-                option2.textContent = task.name;
-                assignTaskSelect.appendChild(option2);
-            });
+            // Multi-select for tasks
+            if (assignTaskMultiSelect) {
+                assignTaskMultiSelect.innerHTML = '';
+                householdData.allTasks?.forEach(task => {
+                    const option = document.createElement('div');
+                    option.className = 'multi-select-option';
+                    option.dataset.id = task.id;
+                    option.textContent = task.name;
+                    option.addEventListener('click', () => {
+                        option.classList.toggle('selected');
+                    });
+                    assignTaskMultiSelect.appendChild(option);
+                });
+            }
             
-            householdData.users?.forEach(user => {
-                const option1 = document.createElement('option');
-                option1.value = user.id;
-                option1.textContent = user.name;
-                assignUserSelect.appendChild(option1);
-                
-                const option2 = document.createElement('option');
-                option2.value = user.id;
-                option2.textContent = user.name;
-                userToRename.appendChild(option2);
-            });
+            // Multi-select for users
+            if (assignUserMultiSelect) {
+                assignUserMultiSelect.innerHTML = '';
+                householdData.users?.forEach(user => {
+                    const option = document.createElement('div');
+                    option.className = 'multi-select-option';
+                    option.dataset.id = user.id;
+                    option.textContent = user.name;
+                    option.addEventListener('click', () => {
+                        option.classList.toggle('selected');
+                    });
+                    assignUserMultiSelect.appendChild(option);
+                });
+            }
         }
 
         // Set up tab switching
@@ -1339,7 +1591,7 @@
                 card.className = 'progress-card';
                 
                 const avatar = document.createElement('div');
-                avatar.className = `avatar avatar-${index + 1}`;
+                avatar.className = `avatar avatar-${(index % 8) + 1}`;
                 avatar.textContent = user.name.charAt(0).toUpperCase();
                 
                 card.innerHTML = `
@@ -1471,30 +1723,30 @@
                 });
             }
             
-            // Assign task
+            // Assign tasks
             if (assignTaskBtn) {
                 assignTaskBtn.addEventListener('click', async () => {
-                    const taskId = parseInt(assignTaskSelect?.value);
-                    const userId = parseInt(assignUserSelect?.value);
+                    const taskIds = getSelectedItems('assign-task-multi-select');
+                    const userIds = getSelectedItems('assign-user-multi-select');
                     
-                    if (taskId && userId) {
-                        await assignTaskToUser(taskId, userId);
+                    if (taskIds.length > 0 && userIds.length > 0) {
+                        await assignTasksToUsers(taskIds, userIds);
                     } else {
-                        alert("Please select both a task and a user");
+                        alert("Please select at least one task and one user");
                     }
                 });
             }
             
-            // Unassign task
+            // Unassign tasks
             if (unassignTaskBtn) {
                 unassignTaskBtn.addEventListener('click', async () => {
-                    const taskId = parseInt(assignTaskSelect?.value);
-                    const userId = parseInt(assignUserSelect?.value);
+                    const taskIds = getSelectedItems('assign-task-multi-select');
+                    const userIds = getSelectedItems('assign-user-multi-select');
                     
-                    if (taskId && userId) {
-                        await unassignTaskFromUser(taskId, userId);
+                    if (taskIds.length > 0 && userIds.length > 0) {
+                        await unassignTasksFromUsers(taskIds, userIds);
                     } else {
-                        alert("Please select both a task and a user");
+                        alert("Please select at least one task and one user");
                     }
                 });
             }
@@ -1521,6 +1773,40 @@
                         if (userId && newName) {
                             await updateUserName(userId, newName);
                         }
+                    }
+                });
+            }
+            
+            // Add user
+            if (addUserBtn) {
+                addUserBtn.addEventListener('click', async () => {
+                    const name = addUserName?.value?.trim();
+                    if (name) {
+                        await addNewUser(name);
+                    } else {
+                        alert("Please enter a name for the new user");
+                    }
+                });
+                
+                // Allow adding with Enter key
+                addUserName.addEventListener('keypress', async (e) => {
+                    if (e.key === 'Enter') {
+                        const name = addUserName?.value?.trim();
+                        if (name) {
+                            await addNewUser(name);
+                        }
+                    }
+                });
+            }
+            
+            // Remove user
+            if (removeUserBtn) {
+                removeUserBtn.addEventListener('click', async () => {
+                    const userId = parseInt(userToRename?.value);
+                    if (userId) {
+                        await removeUser(userId);
+                    } else {
+                        alert("Please select a user to remove");
                     }
                 });
             }
