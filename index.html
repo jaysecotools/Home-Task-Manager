@@ -926,7 +926,7 @@
             <div class="tab-content" id="manage-tasks">
                 <h3>Manage Tasks</h3>
                 <div class="form-group">
-                    <label for="task-to-edit" class="form-label">Select Task to Edit:</label>
+                    <label for="task-to-edit" class="form-label">Select Task to Edit/Remove:</label>
                     <select class="form-control" id="task-to-edit">
                         <!-- Tasks will be populated here -->
                     </select>
@@ -1087,7 +1087,6 @@
         const newTaskName = document.getElementById('new-task-name');
         const editTaskName = document.getElementById('edit-task-name');
         const taskToEdit = document.getElementById('task-to-edit');
-        const taskToRemove = document.getElementById('task-to-remove');
         const assignTaskMultiSelect = document.getElementById('assign-task-multi-select');
         const assignUserMultiSelect = document.getElementById('assign-user-multi-select');
         const userToRename = document.getElementById('user-to-rename');
@@ -1796,13 +1795,20 @@
 
         // Remove a task with validation
         async function removeTask() {
-            const taskId = parseInt(taskToRemove.value);
-            if (!taskId) return;
+            const taskId = parseInt(taskToEdit.value);
+            if (!taskId) {
+                alert("Please select a task to remove");
+                return;
+            }
             
-            if (!confirm("Are you sure you want to remove this task? This will also unassign it from all users.")) return;
+            if (!confirm("Are you sure you want to remove this task? This will also unassign it from all users.")) {
+                return;
+            }
             
+            // Remove from allTasks
             householdData.allTasks = householdData.allTasks.filter(task => task.id !== taskId);
             
+            // Remove from all users' task lists
             householdData.users.forEach(user => {
                 user.tasks = user.tasks.filter(task => task.id !== taskId);
             });
@@ -1811,6 +1817,12 @@
             renderSharedView();
             populateDropdowns();
             if (isAdmin) renderAdminDashboard();
+            
+            // Clear the edit form
+            editTaskName.value = '';
+            document.querySelectorAll('input[name="edit-day"]').forEach(cb => {
+                cb.checked = false;
+            });
         }
 
         // Update a task with validation
@@ -1919,17 +1931,6 @@
                     
                     // Populate per-user day assignments
                     populateUserDayAssignments(taskId);
-                });
-            }
-            
-            // Task to remove dropdown
-            if (taskToRemove) {
-                taskToRemove.innerHTML = '<option value="">Select a task</option>';
-                householdData.allTasks?.forEach(task => {
-                    const option = document.createElement('option');
-                    option.value = task.id;
-                    option.textContent = task.name;
-                    taskToRemove.appendChild(option);
                 });
             }
             
