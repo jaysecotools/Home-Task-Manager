@@ -344,9 +344,27 @@
             color: var(--gray);
         }
 
-        .task-frequency {
-            font-size: 0.75rem;
+        .task-days {
+            display: flex;
+            gap: 2px;
             margin-left: 0.5rem;
+        }
+
+        .day-pill {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            font-size: 0.6rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--light-gray);
+            color: var(--dark);
+        }
+
+        .day-pill.active {
+            background-color: var(--primary);
+            color: var(--white);
         }
 
         .week-indicator {
@@ -495,18 +513,18 @@
             transition: width 0.5s ease;
         }
 
-        .frequency-stats {
+        .day-stats {
             margin-top: 0.75rem;
         }
 
-        .frequency-stats p {
+        .day-stats p {
             margin: 0.25rem 0;
             font-size: 0.85rem;
             display: flex;
             justify-content: space-between;
         }
 
-        .frequency-stats span {
+        .day-stats span {
             font-weight: 500;
         }
 
@@ -551,6 +569,33 @@
         .avatar-6 { background-color: #ef4848 !important; }
         .avatar-7 { background-color: #48efc8 !important; }
         .avatar-8 { background-color: #ef8f48 !important; }
+
+        /* Day selector styles */
+        .day-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .day-selector label {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            cursor: pointer;
+            padding: 0.25rem 0.5rem;
+            border-radius: var(--radius-sm);
+            background: var(--light-gray);
+            transition: var(--transition);
+        }
+
+        .day-selector label:hover {
+            background: var(--light);
+        }
+
+        .day-selector input[type="checkbox"] {
+            margin-right: 0.25rem;
+        }
 
         /* Responsive adjustments */
         @media (min-width: 768px) {
@@ -637,6 +682,147 @@
         .user-management-buttons .btn {
             flex: 1;
         }
+
+        /* Edit button */
+        .task-edit-btn {
+            background: none;
+            border: none;
+            color: var(--gray);
+            cursor: pointer;
+            margin-left: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .task-edit-btn:hover {
+            color: var(--primary);
+        }
+
+        /* Edit modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-md);
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 1.5rem;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.active .modal {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--light-gray);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--gray);
+        }
+
+        .modal-close:hover {
+            color: var(--danger);
+        }
+
+        /* Per-user day assignment */
+        .user-day-assignment {
+            margin-top: 1rem;
+            border-top: 1px solid var(--light-gray);
+            padding-top: 1rem;
+        }
+
+        .user-day-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .user-day-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.25rem;
+            margin-left: auto;
+        }
+
+        .user-day-checkbox {
+            display: none;
+        }
+
+        .user-day-label {
+            display: block;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--light-gray);
+            color: var(--dark);
+            text-align: center;
+            line-height: 24px;
+            font-size: 0.7rem;
+            cursor: pointer;
+        }
+
+        .user-day-checkbox:checked + .user-day-label {
+            background: var(--primary);
+            color: var(--white);
+        }
+
+        /* View options toggle */
+        .view-options {
+            text-align: center;
+            margin: 1rem 0;
+        }
+        
+        .toggle-view {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            cursor: pointer;
+        }
+        
+        .upcoming-task {
+            opacity: 0.7;
+            border-left: 3px solid var(--warning);
+        }
+        
+        .day-indicator {
+            font-size: 0.7rem;
+            color: var(--gray);
+            margin-left: 0.5rem;
+        }
     </style>
 </head>
 <body class="non-admin">
@@ -661,14 +847,19 @@
         <h1>Household Chores Manager</h1>
         
         <div class="week-indicator">
-            Current Week: <span id="current-week">1</span>
+            Current Day: <span id="current-day">Monday</span>
+        </div>
+
+        <!-- Add the view options toggle -->
+        <div class="view-options">
+            <label class="toggle-view">
+                <input type="checkbox" id="show-all-tasks"> Show all tasks (not just today's)
+            </label>
         </div>
         
         <div class="card" id="shared-container">
             <!-- All users' tasks will be displayed here together -->
         </div>
-        
-        <button class="btn btn-success btn-block admin-only" id="rotate-tasks">Rotate Tasks for Next Week</button>
         
         <div class="card admin-panel admin-only">
             <div class="tabs">
@@ -686,12 +877,16 @@
                     <input type="text" class="form-control" id="new-task-name" placeholder="Enter task name">
                 </div>
                 <div class="form-group">
-                    <label for="new-task-frequency" class="form-label">Frequency:</label>
-                    <select class="form-control" id="new-task-frequency">
-                        <option value="daily">Daily</option>
-                        <option value="weekly">Weekly</option>
-                        <option value="monthly">Monthly</option>
-                    </select>
+                    <label class="form-label">Default Days (for new assignments):</label>
+                    <div class="day-selector">
+                        <label><input type="checkbox" name="day" value="monday"> Mon</label>
+                        <label><input type="checkbox" name="day" value="tuesday"> Tue</label>
+                        <label><input type="checkbox" name="day" value="wednesday"> Wed</label>
+                        <label><input type="checkbox" name="day" value="thursday"> Thu</label>
+                        <label><input type="checkbox" name="day" value="friday"> Fri</label>
+                        <label><input type="checkbox" name="day" value="saturday"> Sat</label>
+                        <label><input type="checkbox" name="day" value="sunday"> Sun</label>
+                    </div>
                 </div>
                 <button class="btn btn-primary btn-block" id="add-task-btn">Add Task</button>
             </div>
@@ -710,6 +905,18 @@
                         <!-- Users will be populated here -->
                     </div>
                 </div>
+                <div class="form-group">
+                    <label class="form-label">Days for Assignment:</label>
+                    <div class="day-selector">
+                        <label><input type="checkbox" name="assign-day" value="monday"> Mon</label>
+                        <label><input type="checkbox" name="assign-day" value="tuesday"> Tue</label>
+                        <label><input type="checkbox" name="assign-day" value="wednesday"> Wed</label>
+                        <label><input type="checkbox" name="assign-day" value="thursday"> Thu</label>
+                        <label><input type="checkbox" name="assign-day" value="friday"> Fri</label>
+                        <label><input type="checkbox" name="assign-day" value="saturday"> Sat</label>
+                        <label><input type="checkbox" name="assign-day" value="sunday"> Sun</label>
+                    </div>
+                </div>
                 <div class="assign-controls">
                     <button class="btn btn-primary" id="assign-task-btn">Assign Tasks</button>
                     <button class="btn btn-danger" id="unassign-task-btn">Unassign Tasks</button>
@@ -719,12 +926,37 @@
             <div class="tab-content" id="manage-tasks">
                 <h3>Manage Tasks</h3>
                 <div class="form-group">
-                    <label for="task-to-remove" class="form-label">Select Task to Remove:</label>
-                    <select class="form-control" id="task-to-remove">
+                    <label for="task-to-edit" class="form-label">Select Task to Edit:</label>
+                    <select class="form-control" id="task-to-edit">
                         <!-- Tasks will be populated here -->
                     </select>
                 </div>
-                <button class="btn btn-danger btn-block" id="remove-task-btn">Remove Task</button>
+                <div class="form-group">
+                    <label for="edit-task-name" class="form-label">Task Name:</label>
+                    <input type="text" class="form-control" id="edit-task-name" placeholder="Edit task name">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Default Days (for new assignments):</label>
+                    <div class="day-selector">
+                        <label><input type="checkbox" name="edit-day" value="monday"> Mon</label>
+                        <label><input type="checkbox" name="edit-day" value="tuesday"> Tue</label>
+                        <label><input type="checkbox" name="edit-day" value="wednesday"> Wed</label>
+                        <label><input type="checkbox" name="edit-day" value="thursday"> Thu</label>
+                        <label><input type="checkbox" name="edit-day" value="friday"> Fri</label>
+                        <label><input type="checkbox" name="edit-day" value="saturday"> Sat</label>
+                        <label><input type="checkbox" name="edit-day" value="sunday"> Sun</label>
+                    </div>
+                </div>
+                <div class="user-day-assignment">
+                    <h4>Per-User Day Assignments</h4>
+                    <div id="user-day-assignment-container">
+                        <!-- Per-user day assignments will be populated here -->
+                    </div>
+                </div>
+                <div class="assign-controls">
+                    <button class="btn btn-primary" id="update-task-btn">Update Task</button>
+                    <button class="btn btn-danger" id="remove-task-btn">Remove Task</button>
+                </div>
             </div>
             
             <div class="tab-content" id="manage-users">
@@ -768,6 +1000,33 @@
         </div>
     </div>
 
+    <!-- Edit Task Modal -->
+    <div class="modal-overlay" id="edit-task-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Edit Task</h3>
+                <button class="modal-close" id="close-edit-modal">&times;</button>
+            </div>
+            <div class="form-group">
+                <label for="modal-task-name" class="form-label">Task Name:</label>
+                <input type="text" class="form-control" id="modal-task-name">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Days:</label>
+                <div class="day-selector">
+                    <label><input type="checkbox" name="modal-day" value="monday"> Mon</label>
+                    <label><input type="checkbox" name="modal-day" value="tuesday"> Tue</label>
+                    <label><input type="checkbox" name="modal-day" value="wednesday"> Wed</label>
+                    <label><input type="checkbox" name="modal-day" value="thursday"> Thu</label>
+                    <label><input type="checkbox" name="modal-day" value="friday"> Fri</label>
+                    <label><input type="checkbox" name="modal-day" value="saturday"> Sat</label>
+                    <label><input type="checkbox" name="modal-day" value="sunday"> Sun</label>
+                </div>
+            </div>
+            <button class="btn btn-primary btn-block" id="save-task-changes">Save Changes</button>
+        </div>
+    </div>
+
     <script type="module">
         // Import Firebase modules
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -793,6 +1052,7 @@
         // Configuration
         const ADMIN_PASSWORD = "household123";
         let isAdmin = false;
+        let currentlyEditingTaskId = null;
 
         // Default data structure
         const defaultData = {
@@ -813,10 +1073,10 @@
 
         // DOM elements
         const sharedContainer = document.getElementById('shared-container');
-        const currentWeekSpan = document.getElementById('current-week');
-        const rotateBtn = document.getElementById('rotate-tasks');
+        const currentDaySpan = document.getElementById('current-day');
         const addTaskBtn = document.getElementById('add-task-btn');
         const removeTaskBtn = document.getElementById('remove-task-btn');
+        const updateTaskBtn = document.getElementById('update-task-btn');
         const assignTaskBtn = document.getElementById('assign-task-btn');
         const unassignTaskBtn = document.getElementById('unassign-task-btn');
         const renameUserBtn = document.getElementById('rename-user-btn');
@@ -825,7 +1085,8 @@
         const resetUsersBtn = document.getElementById('reset-users-btn');
         const resetDataBtn = document.getElementById('reset-data-btn');
         const newTaskName = document.getElementById('new-task-name');
-        const newTaskFrequency = document.getElementById('new-task-frequency');
+        const editTaskName = document.getElementById('edit-task-name');
+        const taskToEdit = document.getElementById('task-to-edit');
         const taskToRemove = document.getElementById('task-to-remove');
         const assignTaskMultiSelect = document.getElementById('assign-task-multi-select');
         const assignUserMultiSelect = document.getElementById('assign-user-multi-select');
@@ -846,6 +1107,24 @@
         const exportBtn = document.getElementById('export-data');
         const body = document.body;
         const confettiCanvas = document.getElementById('confetti-canvas');
+        const editTaskModal = document.getElementById('edit-task-modal');
+        const closeEditModal = document.getElementById('close-edit-modal');
+        const modalTaskName = document.getElementById('modal-task-name');
+        const saveTaskChanges = document.getElementById('save-task-changes');
+        const userDayAssignmentContainer = document.getElementById('user-day-assignment-container');
+        const showAllTasksToggle = document.getElementById('show-all-tasks');
+
+        // Get current day name
+        function getCurrentDayName() {
+            const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+            return days[new Date().getDay()];
+        }
+
+        // Update day display
+        function updateDayDisplay() {
+            const dayName = getCurrentDayName();
+            currentDaySpan.textContent = dayName.charAt(0).toUpperCase() + dayName.slice(1);
+        }
 
         // Verify and repair data structure
         function verifyDataStructure() {
@@ -876,6 +1155,21 @@
                     // Ensure each task has lastCompleted property
                     user.tasks.forEach(task => {
                         if (!task.lastCompleted) task.lastCompleted = null;
+                        if (!task.days || !Array.isArray(task.days)) {
+                            // Migrate from old frequency system if needed
+                            if (task.frequency) {
+                                if (task.frequency === 'daily') {
+                                    task.days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+                                } else if (task.frequency === 'weekly') {
+                                    task.days = [getCurrentDayName()];
+                                } else if (task.frequency === 'monthly') {
+                                    task.days = [getCurrentDayName()];
+                                }
+                                delete task.frequency;
+                            } else {
+                                task.days = [getCurrentDayName()];
+                            }
+                        }
                     });
                 });
             }
@@ -887,51 +1181,46 @@
                 householdData.allTasks.forEach(task => {
                     if (!task.id) task.id = Date.now();
                     if (!task.name) task.name = "Unnamed Task";
-                    if (!task.frequency) task.frequency = "weekly";
+                    if (!Array.isArray(task.days)) {
+                        // Migrate from old frequency system if needed
+                        if (task.frequency) {
+                            if (task.frequency === 'daily') {
+                                task.days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+                            } else if (task.frequency === 'weekly') {
+                                task.days = [getCurrentDayName()];
+                            } else if (task.frequency === 'monthly') {
+                                task.days = [getCurrentDayName()];
+                            }
+                            delete task.frequency;
+                        } else {
+                            task.days = [getCurrentDayName()];
+                        }
+                    }
                     if (!Array.isArray(task.assignedUsers)) task.assignedUsers = [];
                 });
             }
         }
 
-        // Check if tasks need to be reset based on their frequency
+        // Check if tasks need to be reset based on their day assignment
         function checkForTaskResets() {
             const now = new Date();
+            const todayName = getCurrentDayName();
             const lastResetDate = new Date(householdData.lastResetDate);
-            const needsReset = {
-                daily: false,
-                weekly: false,
-                monthly: false
-            };
-
-            // Check daily reset (if it's a new day)
-            if (now.getDate() !== lastResetDate.getDate() || 
-                now.getMonth() !== lastResetDate.getMonth() || 
-                now.getFullYear() !== lastResetDate.getFullYear()) {
-                needsReset.daily = true;
-            }
-
-            // Check weekly reset (if it's a new week and it's Sunday)
-            if (now.getDay() === 0 && (now.getDate() !== lastResetDate.getDate() || 
-                                       now.getMonth() !== lastResetDate.getMonth() || 
-                                       now.getFullYear() !== lastResetDate.getFullYear())) {
-                needsReset.weekly = true;
-            }
-
-            // Check monthly reset (if it's the 1st of the month)
-            if (now.getDate() === 1 && (now.getMonth() !== lastResetDate.getMonth() || 
-                                       now.getFullYear() !== lastResetDate.getFullYear())) {
-                needsReset.monthly = true;
-            }
-
-            // If any reset is needed, update the tasks
-            if (needsReset.daily || needsReset.weekly || needsReset.monthly) {
+            
+            // Check if it's a new day (after midnight)
+            const isNewDay = now.getDate() !== lastResetDate.getDate() || 
+                            now.getMonth() !== lastResetDate.getMonth() || 
+                            now.getFullYear() !== lastResetDate.getFullYear();
+            
+            if (isNewDay) {
                 householdData.users.forEach(user => {
                     user.tasks.forEach(task => {
-                        if ((task.frequency === 'daily' && needsReset.daily) ||
-                            (task.frequency === 'weekly' && needsReset.weekly) ||
-                            (task.frequency === 'monthly' && needsReset.monthly)) {
-                            task.completed = false;
-                            task.lastCompleted = null;
+                        if (task.days.includes(todayName)) {
+                            const lastCompleted = task.lastCompleted ? new Date(task.lastCompleted) : null;
+                            if (!lastCompleted || lastCompleted.getDate() !== now.getDate()) {
+                                task.completed = false;
+                                task.lastCompleted = null;
+                            }
                         }
                     });
                 });
@@ -994,7 +1283,7 @@
                     
                     saveDataLocally();
                     renderSharedView();
-                    updateWeekDisplay();
+                    updateDayDisplay();
                     populateDropdowns();
                     if (isAdmin) renderAdminDashboard();
                 } else {
@@ -1038,13 +1327,20 @@
         }
 
         // Add a new task with validation
-        async function addNewTask(name, frequency) {
-            if (!name || !frequency) return;
+        async function addNewTask() {
+            const name = newTaskName?.value?.trim();
+            const dayCheckboxes = document.querySelectorAll('.day-selector input[type="checkbox"]:checked');
+            const days = Array.from(dayCheckboxes).map(cb => cb.value);
+            
+            if (!name || days.length === 0) {
+                alert("Please enter a task name and select at least one day");
+                return;
+            }
             
             const newTask = {
                 id: Date.now(),
-                name: name.trim(),
-                frequency: frequency,
+                name: name,
+                days: days,
                 assignedUsers: []
             };
             
@@ -1057,12 +1353,23 @@
             populateDropdowns();
             newTaskName.value = '';
             newTaskName.focus();
+            
+            // Clear day selections
+            dayCheckboxes.forEach(cb => cb.checked = false);
         }
 
         // Assign tasks to users with validation
         async function assignTasksToUsers(taskIds, userIds) {
             if (!taskIds || !userIds || taskIds.length === 0 || userIds.length === 0) {
                 alert("Please select at least one task and one user");
+                return;
+            }
+            
+            const assignDayCheckboxes = document.querySelectorAll('input[name="assign-day"]:checked');
+            const assignDays = Array.from(assignDayCheckboxes).map(cb => cb.value);
+            
+            if (assignDays.length === 0) {
+                alert("Please select at least one day for assignment");
                 return;
             }
             
@@ -1082,11 +1389,21 @@
                         task.assignedUsers.push(userId);
                     }
                     
-                    if (!user.tasks.some(t => t.id === taskId)) {
+                    // Check if user already has this task
+                    const existingTask = user.tasks.find(t => t.id === taskId);
+                    if (existingTask) {
+                        // Update days for existing task
+                        assignDays.forEach(day => {
+                            if (!existingTask.days.includes(day)) {
+                                existingTask.days.push(day);
+                            }
+                        });
+                    } else {
+                        // Add new task assignment
                         user.tasks.push({
                             id: task.id,
                             name: task.name,
-                            frequency: task.frequency,
+                            days: [...assignDays], // Copy the days array
                             completed: false,
                             lastCompleted: null
                         });
@@ -1097,6 +1414,20 @@
             await saveAndSync();
             renderSharedView();
             if (isAdmin) renderAdminDashboard();
+            
+            // Clear selections
+            document.querySelectorAll('.multi-select-option.selected').forEach(el => {
+                el.classList.remove('selected');
+            });
+            assignDayCheckboxes.forEach(cb => cb.checked = false);
+            
+            // Show warning if task isn't assigned for today
+            const todayName = getCurrentDayName();
+            const assignedForToday = assignDays.includes(todayName);
+            
+            if (!assignedForToday) {
+                alert(`Task assigned successfully! Note: This task won't appear in today's list (${todayName}) because it's only assigned for: ${assignDays.join(', ')}`);
+            }
         }
 
         // Add a new user
@@ -1159,20 +1490,20 @@
             
             // Use current data or fallback to defaults
             const users = householdData.users.length > 0 ? householdData.users : defaultData.users;
+            const todayName = getCurrentDayName();
+            const showAllTasks = showAllTasksToggle?.checked || false;
             
             users.forEach((user, index) => {
                 const tasks = user.tasks || [];
-                const totalTasks = tasks.length;
-                const completedTasks = tasks.filter(t => t?.completed).length;
+                const filteredTasks = showAllTasks ? tasks : tasks.filter(t => t.days.includes(todayName));
+                const totalTasks = filteredTasks.length;
+                const completedTasks = filteredTasks.filter(t => t?.completed).length;
                 const completionRate = totalTasks > 0 
                     ? Math.round((completedTasks / totalTasks) * 100) 
                     : 0;
                 
-                // Check if all daily tasks are completed for confetti
-                const dailyTasks = tasks.filter(t => t.frequency === 'daily');
-                const completedDailyTasks = dailyTasks.filter(t => t.completed).length;
-                
-                if (dailyTasks.length > 0 && completedDailyTasks === dailyTasks.length) {
+                // Check if all today's tasks are completed for confetti
+                if (totalTasks > 0 && completedTasks === totalTasks) {
                     triggerConfetti();
                 }
                 
@@ -1203,15 +1534,16 @@
                 const taskList = document.createElement('ul');
                 taskList.className = 'task-list';
                 
-                if (tasks.length === 0) {
+                if (filteredTasks.length === 0) {
                     const emptyMessage = document.createElement('li');
                     emptyMessage.className = 'task-item';
-                    emptyMessage.textContent = 'No tasks assigned';
+                    emptyMessage.textContent = showAllTasks ? 'No tasks assigned' : 'No tasks assigned for today';
                     taskList.appendChild(emptyMessage);
                 } else {
-                    tasks.forEach(task => {
+                    filteredTasks.forEach(task => {
+                        const isTodayTask = task.days.includes(todayName);
                         const taskItem = document.createElement('li');
-                        taskItem.className = 'task-item';
+                        taskItem.className = `task-item ${!isTodayTask ? 'upcoming-task' : ''}`;
                         
                         const checkbox = document.createElement('input');
                         checkbox.type = 'checkbox';
@@ -1229,13 +1561,41 @@
                         taskName.className = `task-name ${task.completed ? 'completed' : ''}`;
                         taskName.textContent = task.name;
                         
-                        const frequencyBadge = document.createElement('span');
-                        frequencyBadge.className = `badge ${getFrequencyBadgeClass(task.frequency)} task-frequency`;
-                        frequencyBadge.textContent = task.frequency;
+                        if (!isTodayTask) {
+                            const dayIndicator = document.createElement('span');
+                            dayIndicator.className = 'day-indicator';
+                            dayIndicator.textContent = `(${task.days.map(d => d.slice(0, 3)).join(', ')})`;
+                            taskName.appendChild(dayIndicator);
+                        }
+                        
+                        const daysContainer = document.createElement('div');
+                        daysContainer.className = 'task-days';
+                        
+                        ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].forEach(day => {
+                            if (task.days.includes(day)) {
+                                const dayPill = document.createElement('span');
+                                dayPill.className = `day-pill ${todayName === day ? 'active' : ''}`;
+                                dayPill.textContent = day.charAt(0).toUpperCase();
+                                dayPill.title = day.charAt(0).toUpperCase() + day.slice(1);
+                                daysContainer.appendChild(dayPill);
+                            }
+                        });
+                        
+                        // Add edit button for admin
+                        if (isAdmin) {
+                            const editBtn = document.createElement('button');
+                            editBtn.className = 'task-edit-btn';
+                            editBtn.innerHTML = '✏️';
+                            editBtn.title = 'Edit task';
+                            editBtn.addEventListener('click', () => {
+                                openEditTaskModal(task.id, user.id);
+                            });
+                            daysContainer.appendChild(editBtn);
+                        }
                         
                         taskItem.appendChild(checkbox);
                         taskItem.appendChild(taskName);
-                        taskItem.appendChild(frequencyBadge);
+                        taskItem.appendChild(daysContainer);
                         taskList.appendChild(taskItem);
                     });
                 }
@@ -1243,6 +1603,78 @@
                 userGroup.appendChild(taskList);
                 sharedContainer.appendChild(userGroup);
             });
+        }
+
+        // Open edit task modal
+        function openEditTaskModal(taskId, userId) {
+            const user = householdData.users.find(u => u.id === userId);
+            if (!user) return;
+            
+            const task = user.tasks.find(t => t.id === taskId);
+            if (!task) return;
+            
+            const mainTask = householdData.allTasks.find(t => t.id === taskId);
+            
+            modalTaskName.value = task.name;
+            
+            // Clear all day checkboxes
+            document.querySelectorAll('input[name="modal-day"]').forEach(cb => {
+                cb.checked = false;
+            });
+            
+            // Check the days this task is assigned to for this user
+            task.days.forEach(day => {
+                const checkbox = document.querySelector(`input[name="modal-day"][value="${day}"]`);
+                if (checkbox) checkbox.checked = true;
+            });
+            
+            currentlyEditingTaskId = { taskId, userId };
+            editTaskModal.classList.add('active');
+        }
+
+        // Save task changes from modal
+        async function saveTaskChangesFromModal() {
+            if (!currentlyEditingTaskId) return;
+            
+            const { taskId, userId } = currentlyEditingTaskId;
+            const user = householdData.users.find(u => u.id === userId);
+            if (!user) return;
+            
+            const task = user.tasks.find(t => t.id === taskId);
+            if (!task) return;
+            
+            const newName = modalTaskName.value.trim();
+            if (!newName) {
+                alert("Please enter a task name");
+                return;
+            }
+            
+            const dayCheckboxes = document.querySelectorAll('input[name="modal-day"]:checked');
+            const newDays = Array.from(dayCheckboxes).map(cb => cb.value);
+            
+            if (newDays.length === 0) {
+                alert("Please select at least one day");
+                return;
+            }
+            
+            // Update task name (for this user's version)
+            task.name = newName;
+            
+            // Update days for this user's task
+            task.days = newDays;
+            
+            // If this is the main task (in allTasks), update its name
+            const mainTask = householdData.allTasks.find(t => t.id === taskId);
+            if (mainTask) {
+                mainTask.name = newName;
+            }
+            
+            await saveAndSync();
+            renderSharedView();
+            if (isAdmin) renderAdminDashboard();
+            
+            editTaskModal.classList.remove('active');
+            currentlyEditingTaskId = null;
         }
 
         // Trigger confetti animation
@@ -1321,16 +1753,6 @@
             return 'badge-danger';
         }
 
-        // Get badge class based on frequency
-        function getFrequencyBadgeClass(frequency) {
-            switch (frequency) {
-                case 'daily': return 'badge-primary';
-                case 'weekly': return 'badge-info';
-                case 'monthly': return 'badge-secondary';
-                default: return 'badge-light';
-            }
-        }
-
         // Update user name with validation
         async function updateUserName(userId, newName) {
             if (!userId || !newName) return;
@@ -1367,14 +1789,9 @@
             householdData = JSON.parse(JSON.stringify(defaultData));
             await saveAndSync();
             renderSharedView();
-            updateWeekDisplay();
+            updateDayDisplay();
             populateDropdowns();
             if (isAdmin) renderAdminDashboard();
-        }
-
-        // Update week display
-        function updateWeekDisplay() {
-            currentWeekSpan.textContent = householdData.currentWeek || 1;
         }
 
         // Remove a task with validation
@@ -1393,6 +1810,36 @@
             await saveAndSync();
             renderSharedView();
             populateDropdowns();
+            if (isAdmin) renderAdminDashboard();
+        }
+
+        // Update a task with validation
+        async function updateTask() {
+            const taskId = parseInt(taskToEdit.value);
+            if (!taskId) return;
+            
+            const newName = editTaskName?.value?.trim();
+            const dayCheckboxes = document.querySelectorAll('input[name="edit-day"]:checked');
+            const newDays = Array.from(dayCheckboxes).map(cb => cb.value);
+            
+            if (!newName || newDays.length === 0) {
+                alert("Please enter a task name and select at least one day");
+                return;
+            }
+            
+            const task = householdData.allTasks.find(t => t.id === taskId);
+            if (!task) return;
+            
+            // Update task name
+            task.name = newName;
+            
+            // Update default days (for new assignments)
+            task.days = newDays;
+            
+            await saveAndSync();
+            populateDropdowns();
+            editTaskName.value = '';
+            renderSharedView();
             if (isAdmin) renderAdminDashboard();
         }
 
@@ -1424,49 +1871,6 @@
             if (isAdmin) renderAdminDashboard();
         }
 
-        // Rotate tasks to next week with validation
-        async function rotateTasks() {
-            if (!confirm("Are you sure you want to rotate tasks to the next week?")) return;
-            
-            if (!householdData.currentWeek) {
-                householdData.currentWeek = 1;
-            } else {
-                householdData.currentWeek++;
-            }
-            
-            householdData.allTasks.forEach(task => {
-                if (task.assignedUsers?.length > 0) {
-                    // Remove task from all users first
-                    householdData.users.forEach(user => {
-                        user.tasks = user.tasks.filter(t => t.id !== task.id);
-                    });
-                    
-                    // Rotate assignment
-                    const firstUser = task.assignedUsers.shift();
-                    task.assignedUsers.push(firstUser);
-                    
-                    // Reassign to all assigned users
-                    task.assignedUsers.forEach(userId => {
-                        const user = householdData.users.find(u => u.id === userId);
-                        if (user) {
-                            user.tasks.push({
-                                id: task.id,
-                                name: task.name,
-                                frequency: task.frequency,
-                                completed: false,
-                                lastCompleted: null
-                            });
-                        }
-                    });
-                }
-            });
-            
-            await saveAndSync();
-            renderSharedView();
-            updateWeekDisplay();
-            if (isAdmin) renderAdminDashboard();
-        }
-
         // Get selected items from multi-select
         function getSelectedItems(containerId) {
             const container = document.getElementById(containerId);
@@ -1482,7 +1886,43 @@
 
         // Populate all dropdowns with validation
         function populateDropdowns() {
-            // Single select dropdowns
+            // Task to edit dropdown
+            if (taskToEdit) {
+                taskToEdit.innerHTML = '<option value="">Select a task</option>';
+                householdData.allTasks?.forEach(task => {
+                    const option = document.createElement('option');
+                    option.value = task.id;
+                    option.textContent = task.name;
+                    taskToEdit.appendChild(option);
+                });
+                
+                // Add event listener to populate edit form when task is selected
+                taskToEdit.addEventListener('change', () => {
+                    const taskId = parseInt(taskToEdit.value);
+                    if (!taskId) return;
+                    
+                    const task = householdData.allTasks.find(t => t.id === taskId);
+                    if (!task) return;
+                    
+                    editTaskName.value = task.name;
+                    
+                    // Clear all day checkboxes
+                    document.querySelectorAll('input[name="edit-day"]').forEach(cb => {
+                        cb.checked = false;
+                    });
+                    
+                    // Check the days for this task
+                    task.days.forEach(day => {
+                        const checkbox = document.querySelector(`input[name="edit-day"][value="${day}"]`);
+                        if (checkbox) checkbox.checked = true;
+                    });
+                    
+                    // Populate per-user day assignments
+                    populateUserDayAssignments(taskId);
+                });
+            }
+            
+            // Task to remove dropdown
             if (taskToRemove) {
                 taskToRemove.innerHTML = '<option value="">Select a task</option>';
                 householdData.allTasks?.forEach(task => {
@@ -1493,6 +1933,7 @@
                 });
             }
             
+            // User to rename dropdown
             if (userToRename) {
                 userToRename.innerHTML = '<option value="">Select a user</option>';
                 householdData.users?.forEach(user => {
@@ -1534,6 +1975,64 @@
             }
         }
 
+        // Populate per-user day assignments for a task
+        function populateUserDayAssignments(taskId) {
+            if (!userDayAssignmentContainer) return;
+            
+            userDayAssignmentContainer.innerHTML = '';
+            
+            const task = householdData.allTasks.find(t => t.id === taskId);
+            if (!task) return;
+            
+            householdData.users.forEach(user => {
+                const userTask = user.tasks.find(t => t.id === taskId);
+                if (!userTask) return;
+                
+                const userDayItem = document.createElement('div');
+                userDayItem.className = 'user-day-item';
+                
+                const userName = document.createElement('span');
+                userName.textContent = user.name;
+                
+                const daySelector = document.createElement('div');
+                daySelector.className = 'user-day-selector';
+                
+                ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].forEach(day => {
+                    const checkboxId = `user-${user.id}-day-${day}`;
+                    
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.className = 'user-day-checkbox';
+                    checkbox.id = checkboxId;
+                    checkbox.value = day;
+                    checkbox.checked = userTask.days.includes(day);
+                    
+                    checkbox.addEventListener('change', () => {
+                        if (checkbox.checked) {
+                            if (!userTask.days.includes(day)) {
+                                userTask.days.push(day);
+                            }
+                        } else {
+                            userTask.days = userTask.days.filter(d => d !== day);
+                        }
+                    });
+                    
+                    const label = document.createElement('label');
+                    label.className = 'user-day-label';
+                    label.htmlFor = checkboxId;
+                    label.textContent = day.charAt(0).toUpperCase();
+                    label.title = day.charAt(0).toUpperCase() + day.slice(1);
+                    
+                    daySelector.appendChild(checkbox);
+                    daySelector.appendChild(label);
+                });
+                
+                userDayItem.appendChild(userName);
+                userDayItem.appendChild(daySelector);
+                userDayAssignmentContainer.appendChild(userDayItem);
+            });
+        }
+
         // Set up tab switching
         function setupTabs() {
             tabs.forEach(tab => {
@@ -1568,23 +2067,28 @@
             
             progressGrid.innerHTML = '';
             
+            const dayNames = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+            const todayName = getCurrentDayName();
+            
             householdData.users?.forEach((user, index) => {
                 const tasks = user.tasks || [];
-                const totalTasks = tasks.length;
-                const completedTasks = tasks.filter(t => t?.completed).length;
+                const todaysTasks = tasks.filter(t => t.days.includes(todayName));
+                const totalTasks = todaysTasks.length;
+                const completedTasks = todaysTasks.filter(t => t?.completed).length;
                 const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
                 
-                const frequencyStats = {
-                    daily: { total: 0, completed: 0 },
-                    weekly: { total: 0, completed: 0 },
-                    monthly: { total: 0, completed: 0 }
-                };
+                const dayStats = {};
+                dayNames.forEach(day => {
+                    dayStats[day] = { total: 0, completed: 0 };
+                });
                 
                 tasks.forEach(task => {
-                    if (task.frequency && frequencyStats[task.frequency]) {
-                        frequencyStats[task.frequency].total++;
-                        if (task.completed) frequencyStats[task.frequency].completed++;
-                    }
+                    task.days.forEach(day => {
+                        if (dayStats[day]) {
+                            dayStats[day].total++;
+                            if (task.completed) dayStats[day].completed++;
+                        }
+                    });
                 });
                 
                 const card = document.createElement('div');
@@ -1602,11 +2106,12 @@
                     <div class="progress-bar">
                         <div class="progress-fill" style="width: ${completionRate}%"></div>
                     </div>
-                    <p style="text-align: center; font-weight: 500; margin: 0.5rem 0;">${completionRate}% Overall Completion</p>
-                    <div class="frequency-stats">
-                        <p><span>Daily:</span> <span>${frequencyStats.daily.completed}/${frequencyStats.daily.total}</span></p>
-                        <p><span>Weekly:</span> <span>${frequencyStats.weekly.completed}/${frequencyStats.weekly.total}</span></p>
-                        <p><span>Monthly:</span> <span>${frequencyStats.monthly.completed}/${frequencyStats.monthly.total}</span></p>
+                    <p style="text-align: center; font-weight: 500; margin: 0.5rem 0;">${completionRate}% Today's Completion</p>
+                    <div class="day-stats">
+                        ${dayNames.map(day => `
+                            <p><span>${day.charAt(0).toUpperCase() + day.slice(1)}:</span> 
+                            <span>${dayStats[day].completed}/${dayStats[day].total}</span></p>
+                        `).join('')}
                     </div>
                 `;
                 
@@ -1618,18 +2123,20 @@
         function exportProgressData() {
             if (!isAdmin) return;
             
+            const todayName = getCurrentDayName();
             const data = {
                 timestamp: new Date().toISOString(),
-                week: householdData.currentWeek || 1,
+                currentDay: todayName,
                 lastResetDate: householdData.lastResetDate,
                 users: householdData.users?.map(user => {
                     const tasks = user.tasks || [];
+                    const todaysTasks = tasks.filter(t => t.days.includes(todayName));
                     return {
                         name: user.name,
-                        completionRate: Math.round((tasks.filter(t => t?.completed).length / tasks.length) * 100) || 0,
-                        tasks: tasks.map(task => ({
+                        completionRate: Math.round((todaysTasks.filter(t => t?.completed).length / todaysTasks.length) * 100) || 0,
+                        tasks: todaysTasks.map(task => ({
                             name: task.name,
-                            frequency: task.frequency,
+                            days: task.days,
                             completed: task.completed,
                             lastCompleted: task.lastCompleted || "Never"
                         }))
@@ -1641,7 +2148,7 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `household-progress-week-${householdData.currentWeek || 1}.json`;
+            a.download = `household-progress-${todayName}.json`;
             a.click();
             URL.revokeObjectURL(url);
         }
@@ -1686,6 +2193,18 @@
             if (exportBtn) exportBtn.addEventListener('click', exportProgressData);
             if (resetUsersBtn) resetUsersBtn.addEventListener('click', resetUserNames);
             if (resetDataBtn) resetDataBtn.addEventListener('click', resetAllData);
+            
+            // Modal event listeners
+            if (closeEditModal) {
+                closeEditModal.addEventListener('click', () => {
+                    editTaskModal.classList.remove('active');
+                    currentlyEditingTaskId = null;
+                });
+            }
+            
+            if (saveTaskChanges) {
+                saveTaskChanges.addEventListener('click', saveTaskChangesFromModal);
+            }
         }
 
         // Set up event listeners with validation
@@ -1693,25 +2212,13 @@
             // Add task
             if (addTaskBtn) {
                 addTaskBtn.addEventListener('click', async () => {
-                    const name = newTaskName?.value?.trim();
-                    const frequency = newTaskFrequency?.value;
-                    
-                    if (name && frequency) {
-                        await addNewTask(name, frequency);
-                    } else {
-                        alert("Please enter a task name and select frequency");
-                    }
+                    await addNewTask();
                 });
                 
                 // Allow adding task with Enter key
                 newTaskName.addEventListener('keypress', async (e) => {
                     if (e.key === 'Enter') {
-                        const name = newTaskName?.value?.trim();
-                        const frequency = newTaskFrequency?.value;
-                        
-                        if (name && frequency) {
-                            await addNewTask(name, frequency);
-                        }
+                        await addNewTask();
                     }
                 });
             }
@@ -1720,6 +2227,13 @@
             if (removeTaskBtn) {
                 removeTaskBtn.addEventListener('click', async () => {
                     await removeTask();
+                });
+            }
+            
+            // Update task
+            if (updateTaskBtn) {
+                updateTaskBtn.addEventListener('click', async () => {
+                    await updateTask();
                 });
             }
             
@@ -1811,11 +2325,9 @@
                 });
             }
             
-            // Rotate tasks
-            if (rotateBtn) {
-                rotateBtn.addEventListener('click', async () => {
-                    await rotateTasks();
-                });
+            // Toggle for showing all tasks
+            if (showAllTasksToggle) {
+                showAllTasksToggle.addEventListener('change', renderSharedView);
             }
         }
 
@@ -1830,7 +2342,7 @@
                 
                 // Setup UI
                 renderSharedView();
-                updateWeekDisplay();
+                updateDayDisplay();
                 populateDropdowns();
                 
                 // Setup functionality
