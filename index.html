@@ -1032,6 +1032,9 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
+        // MODIFIED SECURITY SETUP - ADD THIS SECRET PASSWORD
+        const FAMILY_PASSWORD = "household123"; // CHANGE THIS TO YOUR OWN SECRET PASSWORD
+
         // Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyCi9sLJbYKFTSuw6IvFBePa0gbcQYrqoS8",
@@ -1047,7 +1050,9 @@
         // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
-        const dbRef = ref(db, 'householdData');
+        
+        // MODIFIED DATABASE REFERENCE - INCLUDES PASSWORD IN PATH
+        const dbRef = ref(db, `householdData_${FAMILY_PASSWORD}`);
 
         // Configuration
         const ADMIN_PASSWORD = "household123";
@@ -1112,6 +1117,23 @@
         const saveTaskChanges = document.getElementById('save-task-changes');
         const userDayAssignmentContainer = document.getElementById('user-day-assignment-container');
         const showAllTasksToggle = document.getElementById('show-all-tasks');
+
+        // MODIFIED: Data validation function
+        function isValidUpdate(data) {
+            // Basic structure validation
+            if (!data.users || !Array.isArray(data.users)) return false;
+            if (!data.allTasks || !Array.isArray(data.allTasks)) return false;
+            
+            // Prevent unreasonably large data
+            if (JSON.stringify(data).length > 100000) return false; // ~100KB max
+            
+            // Validate task structure
+            for (const user of data.users) {
+                if (!user.tasks || !Array.isArray(user.tasks)) return false;
+            }
+            
+            return true;
+        }
 
         // Get current day name
         function getCurrentDayName() {
@@ -1231,9 +1253,15 @@
             return false;
         }
 
-        // Save to Realtime Database
+        // MODIFIED: Save to Realtime Database with validation
         async function saveToDatabase() {
             try {
+                if (!isValidUpdate(householdData)) {
+                    console.error("Invalid data structure - not saving");
+                    showSyncStatus("Validation failed - not saving");
+                    return;
+                }
+                
                 showSyncStatus("Saving to cloud...");
                 await set(dbRef, householdData);
                 showSyncStatus("Synced");
