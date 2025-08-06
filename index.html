@@ -2176,105 +2176,110 @@
             });
         }
 
-        // Render completion history
-        function renderCompletionHistory(daysToShow = 5) {
-            if (!historyContainer) return;
+       // Render completion history - FIXED VERSION
+function renderCompletionHistory(daysToShow = 5) {
+    const historyContainer = document.getElementById('history-container');
+    if (!historyContainer) return;
+    
+    if (!isAdmin) {
+        historyContainer.innerHTML = '<div class="no-history">Please login as admin to view history</div>';
+        return;
+    }
+    
+    historyContainer.innerHTML = '';
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Get the last X days
+    const days = [];
+    for (let i = 0; i < daysToShow; i++) {
+        const date = new Date(today);
+        date.setDate(date.getDate() - i);
+        days.push(date);
+    }
+    
+    if (days.length === 0) {
+        historyContainer.innerHTML = '<div class="no-history">No history available</div>';
+        return;
+    }
+    
+    days.forEach(day => {
+        const dayName = day.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+        const dateString = day.toLocaleDateString('en-US', { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+        });
+        
+        const dayElement = document.createElement('div');
+        dayElement.className = 'history-day';
+        
+        const dateElement = document.createElement('div');
+        dateElement.className = 'history-date';
+        dateElement.textContent = dateString;
+        dayElement.appendChild(dateElement);
+        
+        householdData.users.forEach(user => {
+            const userElement = document.createElement('div');
+            userElement.className = 'history-user';
             
-            if (!isAdmin) {
-                historyContainer.innerHTML = '<div class="no-history">Please login as admin to view history</div>';
-                return;
-            }
+            const userHeader = document.createElement('div');
+            userHeader.className = 'history-user-name';
             
-            historyContainer.innerHTML = '';
+            const avatar = document.createElement('div');
+            avatar.className = `avatar avatar-${(user.id % 8) + 1}`;
+            avatar.textContent = user.name.charAt(0).toUpperCase();
             
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
+            userHeader.appendChild(avatar);
+            userHeader.appendChild(document.createTextNode(user.name));
+            userElement.appendChild(userHeader);
             
-            // Get the last X days
-            const days = [];
-            for (let i = 0; i < daysToShow; i++) {
-                const date = new Date(today);
-                date.setDate(date.getDate() - i);
-                days.push(date);
-            }
+            // Get tasks assigned for this day
+            const assignedTasks = user.tasks.filter(task => 
+                task.days.includes(dayName)
+            );
             
-            if (days.length === 0) {
-                historyContainer.innerHTML = '<div class="no-history">No history available</div>';
-                return;
-            }
-            
-            days.forEach(day => {
-                const dayName = day.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-                const dateString = day.toLocaleDateString('en-US', { 
-                    weekday: 'long', 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
+            if (assignedTasks.length === 0) {
+                const noTasks = document.createElement('div');
+                noTasks.className = 'history-task';
+                noTasks.textContent = 'No tasks assigned for this day';
+                userElement.appendChild(noTasks);
+            } else {
+                assignedTasks.forEach(task => {
+                    const taskElement = document.createElement('div');
+                    taskElement.className = 'history-task';
+                    
+                    const taskName = document.createElement('div');
+                    taskName.className = 'history-task-name';
+                    taskName.textContent = task.name;
+                    
+                    const taskStatus = document.createElement('div');
+                    
+                    // Check if task was completed on or before this day
+                    const taskCompletedDate = task.lastCompleted ? new Date(task.lastCompleted) : null;
+                    const isCompleted = taskCompletedDate && taskCompletedDate <= day;
+                    
+                    taskStatus.className = 'history-task-status ' + 
+                        (isCompleted ? 'completed' : 'pending');
+                    
+                    taskStatus.textContent = isCompleted ? 
+                        'Completed' + (taskCompletedDate.toDateString() === day.toDateString() ? '' : ' (early)') : 
+                        'Pending';
+                    
+                    taskElement.appendChild(taskName);
+                    taskElement.appendChild(taskStatus);
+                    userElement.appendChild(taskElement);
                 });
-                
-                const dayElement = document.createElement('div');
-                dayElement.className = 'history-day';
-                
-                const dateElement = document.createElement('div');
-                dateElement.className = 'history-date';
-                dateElement.textContent = dateString;
-                dayElement.appendChild(dateElement);
-                
-                householdData.users.forEach(user => {
-                    const userElement = document.createElement('div');
-                    userElement.className = 'history-user';
-                    
-                    const userHeader = document.createElement('div');
-                    userHeader.className = 'history-user-name';
-                    
-                    const avatar = document.createElement('div');
-                    avatar.className = `avatar avatar-${(user.id % 8) + 1}`;
-                    avatar.textContent = user.name.charAt(0).toUpperCase();
-                    
-                    userHeader.appendChild(avatar);
-                    userHeader.appendChild(document.createTextNode(user.name));
-                    userElement.appendChild(userHeader);
-                    
-                    const relevantTasks = user.tasks.filter(task => 
-                        task.days.includes(dayName) || 
-                        (task.lastCompleted && new Date(task.lastCompleted).toDateString() === day.toDateString())
-                    );
-                    
-                    if (relevantTasks.length === 0) {
-                        const noTasks = document.createElement('div');
-                        noTasks.className = 'history-task';
-                        noTasks.textContent = 'No tasks assigned for this day';
-                        userElement.appendChild(noTasks);
-                    } else {
-                        relevantTasks.forEach(task => {
-                            const taskElement = document.createElement('div');
-                            taskElement.className = 'history-task';
-                            
-                            const taskName = document.createElement('div');
-                            taskName.className = 'history-task-name';
-                            taskName.textContent = task.name;
-                            
-                            const taskStatus = document.createElement('div');
-                            taskStatus.className = 'history-task-status ' + 
-                                (task.lastCompleted && new Date(task.lastCompleted).toDateString() === day.toDateString() ? 
-                                 'completed' : 'pending');
-                            
-                            taskStatus.textContent = task.lastCompleted && 
-                                new Date(task.lastCompleted).toDateString() === day.toDateString() ? 
-                                'Completed' : 'Pending';
-                            
-                            taskElement.appendChild(taskName);
-                            taskElement.appendChild(taskStatus);
-                            userElement.appendChild(taskElement);
-                        });
-                    }
-                    
-                    dayElement.appendChild(userElement);
-                });
-                
-                historyContainer.appendChild(dayElement);
-            });
-        }
+            }
+            
+            dayElement.appendChild(userElement);
+        });
+        
+        historyContainer.appendChild(dayElement);
+    });
+}
 
         // Admin dashboard rendering
         function renderAdminDashboard() {
