@@ -22,7 +22,7 @@
             --primary: #4361ee;
             --primary-light: #3a86ff;
             --secondary: #3f37c9;
-            --success: 8px #4cc9f0;
+            --success: #4cc9f0;
             --danger: #f72585;
             --warning: #f8961e;
             --info: #4895ef;
@@ -835,6 +835,70 @@
             color: var(--gray);
             margin-left: 0.5rem;
         }
+
+        /* Completion History Styles */
+        .history-day {
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+
+        .history-date {
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            color: var(--primary);
+            border-bottom: 1px solid var(--light-gray);
+            padding-bottom: 0.5rem;
+        }
+
+        .history-user {
+            margin-bottom: 0.75rem;
+        }
+
+        .history-user-name {
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .history-task {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px dashed var(--light-gray);
+        }
+
+        .history-task:last-child {
+            border-bottom: none;
+        }
+
+        .history-task-name {
+            flex: 1;
+        }
+
+        .history-task-status {
+            width: 80px;
+            text-align: right;
+            font-size: 0.85rem;
+        }
+
+        .history-task-status.completed {
+            color: var(--success);
+            font-weight: 500;
+        }
+
+        .history-task-status.pending {
+            color: var(--danger);
+        }
+
+        .no-history {
+            text-align: center;
+            color: var(--gray);
+            padding: 2rem;
+        }
     </style>
 </head>
 <body class="non-admin">
@@ -880,6 +944,7 @@
                 <div class="tab" data-tab="manage-tasks">Manage Tasks</div>
                 <div class="tab" data-tab="manage-users">Manage Users</div>
                 <div class="tab" data-tab="progress-tracker">Progress</div>
+                <div class="tab" data-tab="completion-history">History</div>
             </div>
             
             <div class="tab-content active" id="add-task">
@@ -1009,6 +1074,21 @@
                     <p>Please login as admin to view progress tracking.</p>
                 </div>
             </div>
+
+            <div class="tab-content" id="completion-history">
+                <h3>Task Completion History</h3>
+                <div class="form-group">
+                    <label for="history-days" class="form-label">View history for past:</label>
+                    <select class="form-control" id="history-days">
+                        <option value="3">3 days</option>
+                        <option value="5" selected>5 days</option>
+                        <option value="7">7 days</option>
+                    </select>
+                </div>
+                <div id="history-container">
+                    <!-- History will be displayed here -->
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1129,6 +1209,8 @@
         const saveTaskChanges = document.getElementById('save-task-changes');
         const userDayAssignmentContainer = document.getElementById('user-day-assignment-container');
         const showAllTasksToggle = document.getElementById('show-all-tasks');
+        const historyDaysSelect = document.getElementById('history-days');
+        const historyContainer = document.getElementById('history-container');
 
         // MODIFIED: Data validation function
         function isValidUpdate(data) {
@@ -2087,8 +2169,110 @@
                     
                     if (tabId === 'progress-tracker') {
                         renderAdminDashboard();
+                    } else if (tabId === 'completion-history') {
+                        renderCompletionHistory(5); // Default to 5 days
                     }
                 });
+            });
+        }
+
+        // Render completion history
+        function renderCompletionHistory(daysToShow = 5) {
+            if (!historyContainer) return;
+            
+            if (!isAdmin) {
+                historyContainer.innerHTML = '<div class="no-history">Please login as admin to view history</div>';
+                return;
+            }
+            
+            historyContainer.innerHTML = '';
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            // Get the last X days
+            const days = [];
+            for (let i = 0; i < daysToShow; i++) {
+                const date = new Date(today);
+                date.setDate(date.getDate() - i);
+                days.push(date);
+            }
+            
+            if (days.length === 0) {
+                historyContainer.innerHTML = '<div class="no-history">No history available</div>';
+                return;
+            }
+            
+            days.forEach(day => {
+                const dayName = day.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+                const dateString = day.toLocaleDateString('en-US', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                });
+                
+                const dayElement = document.createElement('div');
+                dayElement.className = 'history-day';
+                
+                const dateElement = document.createElement('div');
+                dateElement.className = 'history-date';
+                dateElement.textContent = dateString;
+                dayElement.appendChild(dateElement);
+                
+                householdData.users.forEach(user => {
+                    const userElement = document.createElement('div');
+                    userElement.className = 'history-user';
+                    
+                    const userHeader = document.createElement('div');
+                    userHeader.className = 'history-user-name';
+                    
+                    const avatar = document.createElement('div');
+                    avatar.className = `avatar avatar-${(user.id % 8) + 1}`;
+                    avatar.textContent = user.name.charAt(0).toUpperCase();
+                    
+                    userHeader.appendChild(avatar);
+                    userHeader.appendChild(document.createTextNode(user.name));
+                    userElement.appendChild(userHeader);
+                    
+                    const relevantTasks = user.tasks.filter(task => 
+                        task.days.includes(dayName) || 
+                        (task.lastCompleted && new Date(task.lastCompleted).toDateString() === day.toDateString())
+                    );
+                    
+                    if (relevantTasks.length === 0) {
+                        const noTasks = document.createElement('div');
+                        noTasks.className = 'history-task';
+                        noTasks.textContent = 'No tasks assigned for this day';
+                        userElement.appendChild(noTasks);
+                    } else {
+                        relevantTasks.forEach(task => {
+                            const taskElement = document.createElement('div');
+                            taskElement.className = 'history-task';
+                            
+                            const taskName = document.createElement('div');
+                            taskName.className = 'history-task-name';
+                            taskName.textContent = task.name;
+                            
+                            const taskStatus = document.createElement('div');
+                            taskStatus.className = 'history-task-status ' + 
+                                (task.lastCompleted && new Date(task.lastCompleted).toDateString() === day.toDateString() ? 
+                                 'completed' : 'pending');
+                            
+                            taskStatus.textContent = task.lastCompleted && 
+                                new Date(task.lastCompleted).toDateString() === day.toDateString() ? 
+                                'Completed' : 'Pending';
+                            
+                            taskElement.appendChild(taskName);
+                            taskElement.appendChild(taskStatus);
+                            userElement.appendChild(taskElement);
+                        });
+                    }
+                    
+                    dayElement.appendChild(userElement);
+                });
+                
+                historyContainer.appendChild(dayElement);
             });
         }
 
@@ -2245,6 +2429,13 @@
             
             if (saveTaskChanges) {
                 saveTaskChanges.addEventListener('click', saveTaskChangesFromModal);
+            }
+            
+            // History days selector
+            if (historyDaysSelect) {
+                historyDaysSelect.addEventListener('change', () => {
+                    renderCompletionHistory(parseInt(historyDaysSelect.value));
+                });
             }
         }
 
