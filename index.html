@@ -836,7 +836,7 @@
             margin-left: 0.5rem;
         }
 
-        /* Completion History Styles */
+        /* Enhanced Completion History Styles */
         .history-day {
             margin-bottom: 1.5rem;
             padding: 1rem;
@@ -880,7 +880,7 @@
         }
 
         .history-task-status {
-            width: 80px;
+            width: 120px;
             text-align: right;
             font-size: 0.85rem;
         }
@@ -890,14 +890,68 @@
             font-weight: 500;
         }
 
+        .history-task-status.completed-early {
+            color: #4cc9f0;
+            font-weight: 500;
+        }
+
+        .history-task-status.completed-late {
+            color: var(--warning);
+            font-weight: 500;
+        }
+
         .history-task-status.pending {
             color: var(--danger);
+        }
+
+        .history-task-date {
+            font-size: 0.7rem;
+            color: var(--gray);
+            margin-top: 0.2rem;
         }
 
         .no-history {
             text-align: center;
             color: var(--gray);
             padding: 2rem;
+        }
+
+        .history-controls {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .history-controls .form-group {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .history-summary {
+            background: var(--light);
+            padding: 0.75rem;
+            border-radius: var(--radius-sm);
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .history-summary-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.25rem;
+        }
+
+        .history-summary-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .history-summary-label {
+            font-weight: 500;
+        }
+
+        .history-summary-value {
+            font-weight: 600;
         }
     </style>
 </head>
@@ -1077,17 +1131,42 @@
 
             <div class="tab-content" id="completion-history">
                 <h3>Task Completion History</h3>
-                <div class="form-group">
-                    <label for="history-days" class="form-label">View history for past:</label>
-                    <select class="form-control" id="history-days">
-                        <option value="3">3 days</option>
-                        <option value="5" selected>5 days</option>
-                        <option value="7">7 days</option>
-                    </select>
+                <div class="history-controls">
+                    <div class="form-group">
+                        <label for="history-days" class="form-label">View history for past:</label>
+                        <select class="form-control" id="history-days">
+                            <option value="3">3 days</option>
+                            <option value="5" selected>5 days</option>
+                            <option value="7">7 days</option>
+                            <option value="14">14 days</option>
+                            <option value="30">30 days</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="history-user-filter" class="form-label">Filter by user:</label>
+                        <select class="form-control" id="history-user-filter">
+                            <option value="all">All Users</option>
+                            <!-- Users will be populated here -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="history-status-filter" class="form-label">Filter by status:</label>
+                        <select class="form-control" id="history-status-filter">
+                            <option value="all">All Statuses</option>
+                            <option value="completed">Completed</option>
+                            <option value="pending">Pending</option>
+                            <option value="early">Completed Early</option>
+                            <option value="late">Completed Late</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="history-summary" class="history-summary hidden">
+                    <!-- Summary will be populated here -->
                 </div>
                 <div id="history-container">
                     <!-- History will be displayed here -->
                 </div>
+                <button class="btn btn-info btn-block" id="export-history-btn">Export History</button>
             </div>
         </div>
     </div>
@@ -1210,7 +1289,11 @@
         const userDayAssignmentContainer = document.getElementById('user-day-assignment-container');
         const showAllTasksToggle = document.getElementById('show-all-tasks');
         const historyDaysSelect = document.getElementById('history-days');
+        const historyUserFilter = document.getElementById('history-user-filter');
+        const historyStatusFilter = document.getElementById('history-status-filter');
         const historyContainer = document.getElementById('history-container');
+        const historySummary = document.getElementById('history-summary');
+        const exportHistoryBtn = document.getElementById('export-history-btn');
 
         // MODIFIED: Data validation function
         function isValidUpdate(data) {
@@ -2096,6 +2179,17 @@
                     assignUserMultiSelect.appendChild(option);
                 });
             }
+            
+            // History user filter dropdown
+            if (historyUserFilter) {
+                historyUserFilter.innerHTML = '<option value="all">All Users</option>';
+                householdData.users?.forEach(user => {
+                    const option = document.createElement('option');
+                    option.value = user.id;
+                    option.textContent = user.name;
+                    historyUserFilter.appendChild(option);
+                });
+            }
         }
 
         // Populate per-user day assignments for a task
@@ -2170,116 +2264,305 @@
                     if (tabId === 'progress-tracker') {
                         renderAdminDashboard();
                     } else if (tabId === 'completion-history') {
-                        renderCompletionHistory(5); // Default to 5 days
+                        renderCompletionHistory(parseInt(historyDaysSelect.value));
                     }
                 });
             });
         }
 
-       // Render completion history - FIXED VERSION
-function renderCompletionHistory(daysToShow = 5) {
-    const historyContainer = document.getElementById('history-container');
-    if (!historyContainer) return;
-    
-    if (!isAdmin) {
-        historyContainer.innerHTML = '<div class="no-history">Please login as admin to view history</div>';
-        return;
-    }
-    
-    historyContainer.innerHTML = '';
-    
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    // Get the last X days
-    const days = [];
-    for (let i = 0; i < daysToShow; i++) {
-        const date = new Date(today);
-        date.setDate(date.getDate() - i);
-        days.push(date);
-    }
-    
-    if (days.length === 0) {
-        historyContainer.innerHTML = '<div class="no-history">No history available</div>';
-        return;
-    }
-    
-    days.forEach(day => {
-        const dayName = day.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-        const dateString = day.toLocaleDateString('en-US', { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
-        });
-        
-        const dayElement = document.createElement('div');
-        dayElement.className = 'history-day';
-        
-        const dateElement = document.createElement('div');
-        dateElement.className = 'history-date';
-        dateElement.textContent = dateString;
-        dayElement.appendChild(dateElement);
-        
-        householdData.users.forEach(user => {
-            const userElement = document.createElement('div');
-            userElement.className = 'history-user';
+        // Enhanced Completion History Function
+        function renderCompletionHistory(daysToShow = 5) {
+            if (!historyContainer) return;
             
-            const userHeader = document.createElement('div');
-            userHeader.className = 'history-user-name';
-            
-            const avatar = document.createElement('div');
-            avatar.className = `avatar avatar-${(user.id % 8) + 1}`;
-            avatar.textContent = user.name.charAt(0).toUpperCase();
-            
-            userHeader.appendChild(avatar);
-            userHeader.appendChild(document.createTextNode(user.name));
-            userElement.appendChild(userHeader);
-            
-            // Get tasks assigned for this day
-            const assignedTasks = user.tasks.filter(task => 
-                task.days.includes(dayName)
-            );
-            
-            if (assignedTasks.length === 0) {
-                const noTasks = document.createElement('div');
-                noTasks.className = 'history-task';
-                noTasks.textContent = 'No tasks assigned for this day';
-                userElement.appendChild(noTasks);
-            } else {
-                assignedTasks.forEach(task => {
-                    const taskElement = document.createElement('div');
-                    taskElement.className = 'history-task';
-                    
-                    const taskName = document.createElement('div');
-                    taskName.className = 'history-task-name';
-                    taskName.textContent = task.name;
-                    
-                    const taskStatus = document.createElement('div');
-                    
-                    // Check if task was completed on or before this day
-                    const taskCompletedDate = task.lastCompleted ? new Date(task.lastCompleted) : null;
-                    const isCompleted = taskCompletedDate && taskCompletedDate <= day;
-                    
-                    taskStatus.className = 'history-task-status ' + 
-                        (isCompleted ? 'completed' : 'pending');
-                    
-                    taskStatus.textContent = isCompleted ? 
-                        'Completed' + (taskCompletedDate.toDateString() === day.toDateString() ? '' : ' (early)') : 
-                        'Pending';
-                    
-                    taskElement.appendChild(taskName);
-                    taskElement.appendChild(taskStatus);
-                    userElement.appendChild(taskElement);
-                });
+            if (!isAdmin) {
+                historyContainer.innerHTML = '<div class="no-history">Please login as admin to view history</div>';
+                return;
             }
             
-            dayElement.appendChild(userElement);
-        });
-        
-        historyContainer.appendChild(dayElement);
-    });
-}
+            historyContainer.innerHTML = '';
+            historySummary.innerHTML = '';
+            historySummary.classList.add('hidden');
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            // Get the last X days in chronological order (oldest first)
+            const days = [];
+            for (let i = daysToShow - 1; i >= 0; i--) {
+                const date = new Date(today);
+                date.setDate(date.getDate() - i);
+                days.push(date);
+            }
+            
+            if (days.length === 0) {
+                historyContainer.innerHTML = '<div class="no-history">No history available</div>';
+                return;
+            }
+            
+            // Get filters
+            const selectedUserId = historyUserFilter.value === 'all' ? null : parseInt(historyUserFilter.value);
+            const selectedStatus = historyStatusFilter.value === 'all' ? null : historyStatusFilter.value;
+            
+            // Prepare summary data
+            const summaryData = {
+                totalTasks: 0,
+                completed: 0,
+                completedOnTime: 0,
+                completedEarly: 0,
+                completedLate: 0,
+                pending: 0
+            };
+            
+            days.forEach(day => {
+                const dayName = day.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+                const dateString = day.toLocaleDateString('en-US', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                });
+                
+                const dayElement = document.createElement('div');
+                dayElement.className = 'history-day';
+                
+                const dateElement = document.createElement('div');
+                dateElement.className = 'history-date';
+                dateElement.textContent = dateString;
+                dayElement.appendChild(dateElement);
+                
+                let dayHasContent = false;
+                
+                householdData.users.forEach(user => {
+                    if (selectedUserId && user.id !== selectedUserId) return;
+                    
+                    const userElement = document.createElement('div');
+                    userElement.className = 'history-user';
+                    
+                    const userHeader = document.createElement('div');
+                    userHeader.className = 'history-user-name';
+                    
+                    const avatar = document.createElement('div');
+                    avatar.className = `avatar avatar-${(user.id % 8) + 1}`;
+                    avatar.textContent = user.name.charAt(0).toUpperCase();
+                    
+                    userHeader.appendChild(avatar);
+                    userHeader.appendChild(document.createTextNode(user.name));
+                    userElement.appendChild(userHeader);
+                    
+                    // Get tasks that were due on this day
+                    const dueTasks = user.tasks.filter(task => 
+                        task.days.includes(dayName)
+                    );
+                    
+                    if (dueTasks.length === 0) {
+                        const noTasks = document.createElement('div');
+                        noTasks.className = 'history-task';
+                        noTasks.textContent = 'No tasks due this day';
+                        userElement.appendChild(noTasks);
+                    } else {
+                        dueTasks.forEach(task => {
+                            // Check completion status more accurately
+                            const taskCompletedDate = task.lastCompleted ? new Date(task.lastCompleted) : null;
+                            let status = 'pending';
+                            let statusText = 'Pending';
+                            
+                            if (taskCompletedDate) {
+                                const completedSameDay = 
+                                    taskCompletedDate.getFullYear() === day.getFullYear() &&
+                                    taskCompletedDate.getMonth() === day.getMonth() &&
+                                    taskCompletedDate.getDate() === day.getDate();
+                                    
+                                if (completedSameDay) {
+                                    status = 'completed';
+                                    statusText = 'Completed on time';
+                                    summaryData.completedOnTime++;
+                                } else if (taskCompletedDate < day) {
+                                    status = 'early';
+                                    statusText = 'Completed early';
+                                    summaryData.completedEarly++;
+                                } else if (taskCompletedDate > day) {
+                                    status = 'late';
+                                    statusText = 'Completed late';
+                                    summaryData.completedLate++;
+                                }
+                                summaryData.completed++;
+                            } else {
+                                summaryData.pending++;
+                            }
+                            summaryData.totalTasks++;
+                            
+                            // Apply filters
+                            if (selectedStatus && (
+                                (selectedStatus === 'completed' && status === 'pending') ||
+                                (selectedStatus === 'pending' && status !== 'pending') ||
+                                (selectedStatus === 'early' && status !== 'early') ||
+                                (selectedStatus === 'late' && status !== 'late')
+                            )) {
+                                return;
+                            }
+                            
+                            const taskElement = document.createElement('div');
+                            taskElement.className = 'history-task';
+                            
+                            const taskName = document.createElement('div');
+                            taskName.className = 'history-task-name';
+                            taskName.textContent = task.name;
+                            
+                            const taskStatus = document.createElement('div');
+                            taskStatus.className = `history-task-status ${status}`;
+                            taskStatus.textContent = statusText;
+                            
+                            // Add completion date if available
+                            if (taskCompletedDate) {
+                                const completionDate = document.createElement('div');
+                                completionDate.className = 'history-task-date';
+                                completionDate.textContent = taskCompletedDate.toLocaleDateString();
+                                taskStatus.appendChild(completionDate);
+                            }
+                            
+                            taskElement.appendChild(taskName);
+                            taskElement.appendChild(taskStatus);
+                            userElement.appendChild(taskElement);
+                            dayHasContent = true;
+                        });
+                    }
+                    
+                    if (dayHasContent) {
+                        dayElement.appendChild(userElement);
+                    }
+                });
+                
+                if (dayHasContent) {
+                    historyContainer.appendChild(dayElement);
+                }
+            });
+            
+            // Show summary if we have data
+            if (summaryData.totalTasks > 0) {
+                historySummary.classList.remove('hidden');
+                historySummary.innerHTML = `
+                    <h4>Summary for ${daysToShow} days</h4>
+                    <div class="history-summary-item">
+                        <span class="history-summary-label">Total Tasks:</span>
+                        <span class="history-summary-value">${summaryData.totalTasks}</span>
+                    </div>
+                    <div class="history-summary-item">
+                        <span class="history-summary-label">Completed:</span>
+                        <span class="history-summary-value">${summaryData.completed} (${Math.round((summaryData.completed / summaryData.totalTasks) * 100)}%)</span>
+                    </div>
+                    <div class="history-summary-item">
+                        <span class="history-summary-label">Completed on time:</span>
+                        <span class="history-summary-value">${summaryData.completedOnTime}</span>
+                    </div>
+                    <div class="history-summary-item">
+                        <span class="history-summary-label">Completed early:</span>
+                        <span class="history-summary-value">${summaryData.completedEarly}</span>
+                    </div>
+                    <div class="history-summary-item">
+                        <span class="history-summary-label">Completed late:</span>
+                        <span class="history-summary-value">${summaryData.completedLate}</span>
+                    </div>
+                    <div class="history-summary-item">
+                        <span class="history-summary-label">Pending:</span>
+                        <span class="history-summary-value">${summaryData.pending}</span>
+                    </div>
+                `;
+            } else {
+                historyContainer.innerHTML = '<div class="no-history">No matching tasks found</div>';
+            }
+        }
+
+        // Export history data
+        function exportHistoryData() {
+            if (!isAdmin) return;
+            
+            const daysToShow = parseInt(historyDaysSelect.value);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            // Get the last X days in chronological order (oldest first)
+            const days = [];
+            for (let i = daysToShow - 1; i >= 0; i--) {
+                const date = new Date(today);
+                date.setDate(date.getDate() - i);
+                days.push(date);
+            }
+            
+            const data = {
+                timestamp: new Date().toISOString(),
+                days: days.map(day => {
+                    const dayName = day.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+                    const dateString = day.toLocaleDateString('en-US', { 
+                        weekday: 'long', 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                    });
+                    
+                    const dayData = {
+                        date: dateString,
+                        users: []
+                    };
+                    
+                    householdData.users.forEach(user => {
+                        const userData = {
+                            name: user.name,
+                            tasks: []
+                        };
+                        
+                        // Get tasks that were due on this day
+                        const dueTasks = user.tasks.filter(task => 
+                            task.days.includes(dayName)
+                        );
+                        
+                        dueTasks.forEach(task => {
+                            // Check completion status more accurately
+                            const taskCompletedDate = task.lastCompleted ? new Date(task.lastCompleted) : null;
+                            let status = 'pending';
+                            let statusText = 'Pending';
+                            
+                            if (taskCompletedDate) {
+                                const completedSameDay = 
+                                    taskCompletedDate.getFullYear() === day.getFullYear() &&
+                                    taskCompletedDate.getMonth() === day.getMonth() &&
+                                    taskCompletedDate.getDate() === day.getDate();
+                                    
+                                if (completedSameDay) {
+                                    status = 'completed';
+                                    statusText = 'Completed on time';
+                                } else if (taskCompletedDate < day) {
+                                    status = 'early';
+                                    statusText = 'Completed early';
+                                } else if (taskCompletedDate > day) {
+                                    status = 'late';
+                                    statusText = 'Completed late';
+                                }
+                            }
+                            
+                            userData.tasks.push({
+                                name: task.name,
+                                status: statusText,
+                                completedDate: taskCompletedDate ? taskCompletedDate.toISOString() : null
+                            });
+                        });
+                        
+                        if (userData.tasks.length > 0) {
+                            dayData.users.push(userData);
+                        }
+                    });
+                    
+                    return dayData;
+                })
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `chores-history-${daysToShow}-days.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
 
         // Admin dashboard rendering
         function renderAdminDashboard() {
@@ -2436,11 +2719,27 @@ function renderCompletionHistory(daysToShow = 5) {
                 saveTaskChanges.addEventListener('click', saveTaskChangesFromModal);
             }
             
-            // History days selector
+            // History controls
             if (historyDaysSelect) {
                 historyDaysSelect.addEventListener('change', () => {
                     renderCompletionHistory(parseInt(historyDaysSelect.value));
                 });
+            }
+            
+            if (historyUserFilter) {
+                historyUserFilter.addEventListener('change', () => {
+                    renderCompletionHistory(parseInt(historyDaysSelect.value));
+                });
+            }
+            
+            if (historyStatusFilter) {
+                historyStatusFilter.addEventListener('change', () => {
+                    renderCompletionHistory(parseInt(historyDaysSelect.value));
+                });
+            }
+            
+            if (exportHistoryBtn) {
+                exportHistoryBtn.addEventListener('click', exportHistoryData);
             }
         }
 
